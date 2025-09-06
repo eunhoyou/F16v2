@@ -18,7 +18,7 @@ namespace Action
         float mySpeed = (*BB)->MySpeed_MS;
 
         std::cout << "[Task_DefensiveBFM] Distance: " << distance 
-                  << "m, LOS: " << los << "°, Speed: " << mySpeed << "m/s" << std::endl;
+                  << "m, LOS: " << los << ", Speed: " << mySpeed << "m/s" << std::endl;
 
         // WEZ 위험도에 따른 방어 전략 선택
         if (IsInWEZ(distance, los))

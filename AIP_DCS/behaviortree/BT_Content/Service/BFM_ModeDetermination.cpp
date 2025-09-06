@@ -23,11 +23,11 @@ namespace Action
         
         // WEZ 체크 우선 (무기 교전)
         if (distance >= 152.4f && distance <= 914.4f && std::abs(los) <= 2.0f) {
-            (*BB)->BFM = DETECTING;
+            (*BB)->BFM = OBFM;
             return NodeStatus::SUCCESS;
         }
         
-        // 단계적 BFM 모드 결정 (히스테리시스 적용)
+        // 단계적 BFM 모드 결정
         if (distance > 4000.0f) {
             (*BB)->BFM = HABFM;
         }

@@ -243,9 +243,9 @@ void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
                          << BB->Enemy[0].Location.Y << ", " 
                          << BB->Enemy[0].Location.Z << ")]\n";
                 log_file << "[Distance: " << BB->Distance << "m]\n";
-                log_file << "[AspectAngle: " << BB->MyAspectAngle_Degree << "°]\n";
-                log_file << "[AngleOff: " << BB->MyAngleOff_Degree << "°]\n";
-                log_file << "[LOS: " << BB->Los_Degree << "°]\n";
+                log_file << "[AspectAngle: " << BB->MyAspectAngle_Degree << "]\n";
+                log_file << "[AngleOff: " << BB->MyAngleOff_Degree << "]\n";
+                log_file << "[LOS: " << BB->Los_Degree << "]\n";
             }
             
             // BFM 모드 정보

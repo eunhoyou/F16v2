@@ -17,7 +17,7 @@ namespace Action
         float los = (*BB)->Los_Degree;
         
         std::cout << "[Task_WeaponEngagement] Distance: " << distance 
-                  << "m, LOS: " << los << "°" << std::endl;
+                  << "m, LOS: " << los << "" << std::endl;
 
         // WEZ 조건 확인
         if (IsInWEZ(BB.value()))
@@ -203,7 +203,7 @@ namespace Action
         bool enemyInSight = BB->EnemyInSight;
 
         std::cout << "[IsInWEZ] Range: " << rangeValid << " (" << distance << "m), "
-                  << "Angle: " << angleValid << " (" << los << "°), "
+                  << "Angle: " << angleValid << " (" << los << "), "
                   << "InSight: " << enemyInSight << std::endl;
 
         return rangeValid && angleValid && enemyInSight;

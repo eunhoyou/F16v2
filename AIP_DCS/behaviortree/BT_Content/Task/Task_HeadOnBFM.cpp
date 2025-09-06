@@ -34,7 +34,7 @@ namespace Action
         std::cout << "[Task_HeadOnBFM] Distance: " << distance 
                   << "m, MySpeed: " << mySpeed 
                   << "m/s, TargetSpeed: " << targetSpeed 
-                  << "m/s, LOS: " << los << "°, AA: " << aspectAngle << "°" << std::endl;
+                  << "m/s, LOS: " << los << ", AA: " << aspectAngle << "" << std::endl;
 
         if (ShouldDisengage(BB)) {
             std::cout << "[Task_HeadOnBFM] Escape window open - disengaging" << std::endl;

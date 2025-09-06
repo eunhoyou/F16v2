@@ -9,12 +9,6 @@ using namespace BT;
 
 namespace Action
 {
-    // 히스테리시스를 적용한 BFM 모드 결정
-    BFM_Mode DetermineBFMWithHysteresis(float distance, float aspectAngle, float angleOff, BFM_Mode currentBFM);
-    
-    // 긴급 상황에서의 즉시 모드 변경 허용 여부 판단
-    bool IsEmergencyModeChange(float distance, float aspectAngle, BFM_Mode from, BFM_Mode to);
-
     class BFM_ModeDetermination : public SyncActionNode
     {
     public:

@@ -20,7 +20,7 @@ namespace Action
 
         std::cout << "[Task_OffensiveBFM] Distance: " << distance 
                   << "m, AspectAngle: " << aspectAngle 
-                  << "°, AngleOff: " << angleOff << "°" << std::endl;
+                  << ", AngleOff: " << angleOff << "" << std::endl;
 
         // 교본 원칙: 공격 BFM 단계별 진행
         Vector3 calculated_vp;
@@ -121,15 +121,9 @@ namespace Action
     Vector3 Task_OffensiveBFM::CalculateGunTracking(CPPBlackBoard* BB)
     {
         // 교본: WEZ 내에서 기총 추적 사격
-        Vector3 targetLocation = BB->TargetLocaion_Cartesian;
-        Vector3 targetForward = BB->TargetForwardVector;
-        float targetSpeed = BB->TargetSpeed_MS;
+        // 시뮬레이터에서는 단순히 적기를 향하는 것만으로도 충분
+        Vector3 gunAimPoint = BB->TargetLocaion_Cartesian;
 
-        // 매우 짧은 TOF로 정밀 추적
-        float gunTOF = 0.3f; // 0.3초 TOF
-        Vector3 gunAimPoint = targetLocation + targetForward * targetSpeed * gunTOF;
-
-        std::cout << "[CalculateGunTracking] Gun tracking with 0.3s TOF" << std::endl;
         return gunAimPoint;
     }
 
@@ -189,21 +183,18 @@ namespace Action
 
     float Task_OffensiveBFM::CalculateGunThrottle(float mySpeed)
     {
-        // 교본: 기총 사격시 표적과 속도 일치
-        float optimalGunSpeed = 180.0f; // 기총 사격 최적 속도
-
-        if (mySpeed > optimalGunSpeed + 20.0f)
-        {
-            return 0.5f; // 속도 감소 필요
+        float result;
+        if (mySpeed < 250.0f) {
+            result = 1.0f;
+            std::cout << "[CalculateGunThrottle] Speed=" << mySpeed << " < 250, Throttle=1.0" << std::endl;
+        } else if (mySpeed > 400.0f) {
+            result = 0.7f;
+            std::cout << "[CalculateGunThrottle] Speed=" << mySpeed << " > 400, Throttle=0.7" << std::endl;
+        } else {
+            result = 0.9f;
+            std::cout << "[CalculateGunThrottle] Speed=" << mySpeed << " normal range, Throttle=0.9" << std::endl;
         }
-        else if (mySpeed < optimalGunSpeed - 20.0f)
-        {
-            return 0.9f; // 속도 증가 필요
-        }
-        else
-        {
-            return 0.7f; // 속도 유지
-        }
+        return result;
     }
 
     bool Task_OffensiveBFM::IsInWEZ(CPPBlackBoard* BB)
