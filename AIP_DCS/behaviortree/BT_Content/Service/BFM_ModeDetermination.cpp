@@ -16,37 +16,53 @@ namespace Action
         float distance = (*BB)->Distance;
         float aspectAngle = (*BB)->MyAspectAngle_Degree;
         float angleOff = (*BB)->MyAngleOff_Degree;
+        float los = (*BB)->Los_Degree;
         
-        std::cout << "[BFM_DEBUG] Distance: " << distance 
-                  << ", AspectAngle: " << aspectAngle 
-                  << ", AngleOff: " << angleOff << std::endl;
-
-        // 턴 서클 외부 (HABFM)
-        if (distance > 2000.0f) 
-        {
-            (*BB)->BFM = HABFM;
-            std::cout << "[BFM_DEBUG] Outside Turn Circle -> HABFM selected" << std::endl;
+        // 이전 BFM 모드 고려 (안정성 향상)
+        BFM_Mode previousBFM = (*BB)->BFM;
+        
+        // WEZ 체크 우선 (무기 교전)
+        if (distance >= 152.4f && distance <= 914.4f && std::abs(los) <= 2.0f) {
+            (*BB)->BFM = DETECTING;
+            return NodeStatus::SUCCESS;
         }
-        else // 턴 서클 내부
-        {
-            // OBFM
-            if (aspectAngle < 60.0f)
-            {
+        
+        // 단계적 BFM 모드 결정 (히스테리시스 적용)
+        if (distance > 4000.0f) {
+            (*BB)->BFM = HABFM;
+        }
+        else if (distance > 2500.0f) {
+            // 중거리: AspectAngle 기반 세밀한 판단
+            if (aspectAngle < 45.0f && angleOff > 120.0f) {
                 (*BB)->BFM = OBFM;
-                std::cout << "[BFM_DEBUG] Inside Turn Circle -> OBFM selected" << std::endl;
             }
-            // DBFM
-            else if (aspectAngle > 120.0f && angleOff < 60.0f)
-            {
+            else if (aspectAngle > 135.0f && angleOff < 90.0f) {
                 (*BB)->BFM = DBFM;
-                std::cout << "[BFM_DEBUG] Inside Turn Circle -> DBFM selected" << std::endl;
             }
-            // SCISSORS: OBFM도 DBFM도 아닌, '옆으로 나란한' 상태
-            else
-            {
+            else {
+                // 이전 모드 유지 (불필요한 전환 방지)
+                if (previousBFM == OBFM || previousBFM == DBFM) {
+                    // 유지
+                } else {
+                    (*BB)->BFM = HABFM;
+                }
+            }
+        }
+        else if (distance > 800.0f) {
+            // 근거리: 더 엄격한 조건
+            if (aspectAngle < 30.0f && angleOff > 150.0f) {
+                (*BB)->BFM = OBFM;
+            }
+            else if (aspectAngle > 150.0f && angleOff < 60.0f) {
+                (*BB)->BFM = DBFM;
+            }
+            else {
                 (*BB)->BFM = SCISSORS;
-                std::cout << "[BFM_DEBUG] Neutral/Alongside -> SCISSORS selected" << std::endl;
             }
+        }
+        else {
+            // 초근거리: 무조건 SCISSORS
+            (*BB)->BFM = SCISSORS;
         }
         
         return NodeStatus::SUCCESS;

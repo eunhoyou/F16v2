@@ -54,7 +54,8 @@ UCPPBehaviorTree::~UCPPBehaviorTree()
 
 void UCPPBehaviorTree::init()
 {
-	
+	last_log_time = 0.0;
+    log_interval = 1;
 	/*
 	노드 입력 : 구현해둔 노드들을 Factory 객체에 입력해주는 과정
 	*/
@@ -206,33 +207,80 @@ Vector3 UCPPBehaviorTree::GetVP()
 }
 
 
-// CPPBehaviorTree.cpp의 RunCPPBT 함수에 다음 디버깅 코드 추가
 void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
 {
     BB->RunningTime += BB->DeltaSecond;
     
-	std::cout << "--------------------------------------------------------------------------------------------- " << std::endl;
-	std::cout << "[RunCPPBT] Running time: " << BB->RunningTime << std::endl;
-    if(BB->Enemy.size() > 0) {
-        std::cout << "[DEBUG] Enemy position: (" 
-                  << BB->Enemy[0].Location.X << ", " 
-                  << BB->Enemy[0].Location.Y << ", " 
-                  << BB->Enemy[0].Location.Z << ")" << std::endl;
-    }
+    // 0.5초마다 로그 기록
+    bool should_log = (BB->RunningTime - last_log_time) >= log_interval;
     
-    // std::cout << "[RunCPPBT] Current BFM mode: " << (int)BB->BFM << std::endl;
-    
+    // BT 실행은 매번
     NodeStatus result = tree.tickRoot();
     
     VP = Vector3(BB->VP_Cartesian.X, BB->VP_Cartesian.Y, BB->VP_Cartesian.Z);
     Throttle = BB->Throttle;
     
-    std::cout << "[RunCPPBT] VP: (" << VP.X << ", " << VP.Y << ", " << VP.Z << ")" << std::endl;
-	std::cout << "[RunCPPBT] Throttle: " << Throttle << std::endl;
+    // 로그는 0.5초 주기로만 기록
+    if (should_log) {
+        last_log_time = BB->RunningTime;
+        
+        // 항공기별 로그 파일명 생성
+        std::string log_filename = "aircraft_" + std::to_string(ID) + "_debug.log";
+        
+        std::ofstream log_file(log_filename, std::ios::app);
+        if (log_file.is_open()) {
+            log_file << "=====================================\n";
+            log_file << "[Aircraft ID:" << ID << "] [Time:" << BB->RunningTime << "s]\n";
+            
+            // 내 위치 정보
+            log_file << "[MyPos: (" << BB->MyLocation_Cartesian.X << ", " 
+                     << BB->MyLocation_Cartesian.Y << ", " 
+                     << BB->MyLocation_Cartesian.Z << ")]\n";
+            
+            // 적기 정보
+            if(BB->Enemy.size() > 0) {
+                log_file << "[EnemyPos: (" << BB->Enemy[0].Location.X << ", " 
+                         << BB->Enemy[0].Location.Y << ", " 
+                         << BB->Enemy[0].Location.Z << ")]\n";
+                log_file << "[Distance: " << BB->Distance << "m]\n";
+                log_file << "[AspectAngle: " << BB->MyAspectAngle_Degree << "°]\n";
+                log_file << "[AngleOff: " << BB->MyAngleOff_Degree << "°]\n";
+                log_file << "[LOS: " << BB->Los_Degree << "°]\n";
+            }
+            
+            // BFM 모드 정보
+            std::string bfm_mode;
+            switch(BB->BFM) {
+                case OBFM: bfm_mode = "OBFM"; break;
+                case HABFM: bfm_mode = "HABFM"; break;
+                case DBFM: bfm_mode = "DBFM"; break;
+                case SCISSORS: bfm_mode = "SCISSORS"; break;
+                case DETECTING: bfm_mode = "DETECTING"; break;
+                case NONE: bfm_mode = "NONE"; break;
+                default: bfm_mode = "UNKNOWN"; break;
+            }
+            log_file << "[BFM Mode: " << bfm_mode << "]\n";
+            
+            // 속도 정보
+            log_file << "[MySpeed: " << BB->MySpeed_MS << "m/s]\n";
+            if(BB->Enemy.size() > 0) {
+                log_file << "[TargetSpeed: " << BB->TargetSpeed_MS << "m/s]\n";
+            }
+            
+            // VP와 Throttle 정보도 같은 주기로 기록
+            log_file << "[VP: (" << VP.X << ", " << VP.Y << ", " << VP.Z << ")]\n";
+            log_file << "[Throttle: " << Throttle << "]\n";
+            log_file << "=====================================\n\n";
+            
+            log_file.close();
+        }
+        
+        // 콘솔 출력도 0.5초 주기로
+        std::cout << "[ID:" << ID << "] Running time: " << BB->RunningTime << std::endl;
+    }
 }
 
  void UCPPBehaviorTree::SetDeltaTime(double DT)
  {
 	 BB->DeltaSecond = DT;
  }
-

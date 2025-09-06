@@ -12,7 +12,7 @@
                 <AspectAngleUpdate name="AspectAngleUpdate" BB="{BB}"/>
                 <BFM_ModeDetermination name="BFM_ModeDetermination" BB="{BB}" />
             </Sequence>
-            
+
             <!-- BFM 모드별 행동 선택 -->
             <Fallback>
 
@@ -24,13 +24,6 @@
                     <Task_WeaponEngagement BB="{BB}" />
                 </Sequence>
 
-                <!-- WEZ 접근 (2순위) -->
-                <Sequence>
-                    <DECO_DistanceCheck BB="{BB}" UpDown="Less" Distance="1500" />
-                    <DECO_LOSCheck BB="{BB}" UpDown="Less" InputLOS="10.0" />
-                    <Task_WeaponEngagement BB="{BB}" />
-                </Sequence>
-                
                 <!-- 공격 BFM -->
                 <Sequence>
                     <DECO_BFMCheck name="DECO_BFMCheck" BB="{BB}" CheckBFM="OBFM" />
@@ -53,12 +46,6 @@
                 <Sequence>
                     <DECO_BFMCheck name="DECO_BFMCheck" BB="{BB}" CheckBFM="HABFM" />
                     <Task_HeadOnBFM name="Task_HeadOnBFM" BB="{BB}" />
-                </Sequence>
-
-                <!-- 시저스 BFM -->
-                <Sequence>
-                    <DECO_BFMCheck name="DECO_BFMCheck" BB="{BB}" CheckBFM="SCISSORS" />
-                    <Task_Scissors name="Task_Scissors" BB="{BB}" />
                 </Sequence>
 
             </Fallback>

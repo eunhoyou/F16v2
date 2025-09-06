@@ -13,6 +13,8 @@
 #include "./BT_Content/Functions.h"
 #include "../Geometry/Controller_CY.h"
 
+#include <fstream>
+
 
 #define OriLAT 37.91455691666666
 #define OriLOn 128.18188127777776
@@ -44,6 +46,8 @@ private:
 	double eccen;
 
 private:
+	double last_log_time;       // 마지막 로그 기록 시간
+    double log_interval;        // 로그 기록 간격 (초)
 	//Lat, Lon, 고도는 meter
 	Vector3 LLAtoCartesian(Vector3 LLA, Vector3 BaseLLA);
 
