@@ -145,7 +145,6 @@ namespace Action
         float entryDistance = std::min(distance * 0.3f, 600.0f);
 
         Vector3 entryPoint = myLocation + entryDirection * entryDistance + myForward * 400.0f;
-        entryPoint.Z = myLocation.Z; // 고도 유지
 
         return entryPoint;
     }
@@ -225,7 +224,6 @@ namespace Action
         // 다음 교차를 위한 재위치
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 myForward = BB->MyForwardVector;
-        Vector3 myUp = BB->MyUpVector;
         float mySpeed = BB->MySpeed_MS;
 
         // 에너지 회복을 위한 직선 비행 구간
@@ -233,7 +231,7 @@ namespace Action
         Vector3 repositionPoint = myLocation + myForward * repositionDistance;
 
         // 약간의 고도 상승으로 에너지 저장
-        repositionPoint.Z = myLocation.Z - 150.0f;
+        repositionPoint.Z = myLocation.Z - 150.0f;  // 150m 상승
 
         return repositionPoint;
     }
@@ -243,7 +241,6 @@ namespace Action
         // 시저스에서 이탈 시도
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 myForward = BB->MyForwardVector;
-        Vector3 myUp = BB->MyUpVector;
         float mySpeed = BB->MySpeed_MS;
 
         // 에너지 우위를 활용한 이탈 기동
@@ -251,7 +248,7 @@ namespace Action
         Vector3 escapePoint = myLocation + myForward * escapeDistance;
 
         // 상승하면서 이탈 (위치 에너지로 변환)
-        escapePoint.Z = myLocation.Z - 300.0f;
+        escapePoint.Z = myLocation.Z - 300.0f;  // 300m 상승
 
         return escapePoint;
     }

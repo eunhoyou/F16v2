@@ -21,7 +21,7 @@ namespace Action
 		MyRotation = MyRotation / 57.2958;
 		Quaternion MyQU = MyRotation.toQuaternion();
 
-		//쿼터니언을 이용하여정면벡터(ForwardVector)를 생성 
+		//쿼터니언을 이용하여 정면벡터(ForwardVector)를 생성 
 		Vector3 MyForwardVector;
 		MyForwardVector.Y = 2 * (MyQU.X*MyQU.Z + MyQU.W * MyQU.Y);
 		MyForwardVector.Z = -2 * (MyQU.Y*MyQU.Z - MyQU.W *  MyQU.X);

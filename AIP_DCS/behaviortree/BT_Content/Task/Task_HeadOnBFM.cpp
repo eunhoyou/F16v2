@@ -160,7 +160,7 @@ namespace Action
         float sliceDistance = turnRadius * 1.5f;
 
         Vector3 slicePoint = myLocation + sliceDirection * sliceDistance + myForward * (mySpeed * 2.5f);
-        slicePoint.Z = myLocation.Z + 400.0f;
+        slicePoint.Z = myLocation.Z - 400.0f; // NED 좌표계에서 400m 상승
 
         std::cout << "[AggressiveSlice] 7G turn, radius: " << turnRadius << "m" << std::endl;
         return slicePoint;
@@ -169,19 +169,19 @@ namespace Action
     Vector3 Task_HeadOnBFM::CalculateDefensiveManeuver(CPPBlackBoard* BB)
     {
         Vector3 myLocation = BB->MyLocation_Cartesian;
-        Vector3 myUp = BB->MyUpVector;
         Vector3 myForward = BB->MyForwardVector;
         float mySpeed = BB->MySpeed_MS;
         float myAltitude = std::abs((float)myLocation.Z);
 
         if (myAltitude < 6000.0f && mySpeed > 250.0f) {
             float climbHeight = 500.0f;
-            Vector3 climbPoint = myLocation + myUp * (-climbHeight) + myForward * (mySpeed * 2.0f);
+            Vector3 climbPoint = myLocation + myForward * (mySpeed * 2.0f);
+            climbPoint.Z = myLocation.Z - climbHeight;  // NED 좌표계에서 상승
             std::cout << "[DefensiveManeuver] Climbing 500m for energy" << std::endl;
             return climbPoint;
         } else {
             Vector3 conservePoint = myLocation + myForward * (mySpeed * 3.0f);
-            conservePoint.Z = myLocation.Z;
+            conservePoint.Z = myLocation.Z;  // 수평 비행
             std::cout << "[DefensiveManeuver] Level flight for energy conservation" << std::endl;
             return conservePoint;
         }
@@ -257,12 +257,11 @@ namespace Action
     {
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 myForward = BB->MyForwardVector;
-        Vector3 myUp = BB->MyUpVector;
         float mySpeed = BB->MySpeed_MS;
 
         float escapeDistance = mySpeed * 6.0f;
-        Vector3 escapePoint = myLocation + myForward * escapeDistance + myUp * (-300.0f);
-
+        Vector3 escapePoint = myLocation + myForward * escapeDistance;
+        escapePoint.Z = myLocation.Z - 300.0f;  // NED 좌표계에서 300m 상승
         std::cout << "[CalculateDisengagement] Climbing escape" << std::endl;
         return escapePoint;
     }
@@ -314,15 +313,14 @@ namespace Action
         bool significantSpeedAdvantage = (mySpeed - targetSpeed > 80.0f);
         bool favorableGeometry = (angleOff > 150.0f && distance > 4000.0f);
         bool altitudeTooHigh = (myAltitude > 10000.0f);
-        bool altitudeTooLow = (myAltitude < 1000.0f);
+        // 🔥 altitudeTooLow 조건 제거 - AltitudeSafetyCheck에서 처리
 
         bool shouldDisengage = (significantSpeedAdvantage && favorableGeometry) || 
-                               altitudeTooHigh || altitudeTooLow;
+                            altitudeTooHigh;
 
         if (shouldDisengage) {
             std::cout << "[ShouldDisengage] Speed:" << significantSpeedAdvantage 
-                      << " Geom:" << favorableGeometry << " AltHigh:" << altitudeTooHigh 
-                      << " AltLow:" << altitudeTooLow << std::endl;
+                    << " Geom:" << favorableGeometry << " AltHigh:" << altitudeTooHigh << std::endl;
         }
 
         return shouldDisengage;

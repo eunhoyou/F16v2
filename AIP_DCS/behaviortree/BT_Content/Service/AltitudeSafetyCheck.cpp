@@ -12,7 +12,6 @@ namespace Action
     NodeStatus AltitudeSafetyCheck::tick()
     {
         Optional<CPPBlackBoard*> BB = getInput<CPPBlackBoard*>("BB");
-
         float currentAltitude = std::abs((*BB)->MyLocation_Cartesian.Z);
         
         // 응급 상황 (400m 이하)
@@ -36,10 +35,11 @@ namespace Action
             if (vpAltitude < MIN_SAFE_ALTITUDE)
             {
                 std::cout << "[AltitudeSafetyCheck] Adjusting VP altitude to safe level (" << MIN_SAFE_ALTITUDE << "m)" << std::endl;
-                currentVP.Z = MIN_SAFE_ALTITUDE;
+                currentVP.Z = -MIN_SAFE_ALTITUDE;
                 (*BB)->VP_Cartesian = currentVP;
                 (*BB)->Throttle = 1.0f;
             }
+            return NodeStatus::SUCCESS;
         }
 
         // 일반적인 VP 고도 안전성 검사
@@ -49,7 +49,7 @@ namespace Action
         if (plannedAltitude < MIN_SAFE_ALTITUDE)
         {
             std::cout << "[AltitudeSafetyCheck] VP altitude too low, adjusting to safe altitude (" << MIN_SAFE_ALTITUDE << "m)" << std::endl;
-            plannedVP.Z = MIN_SAFE_ALTITUDE;
+            plannedVP.Z = -MIN_SAFE_ALTITUDE;
             (*BB)->VP_Cartesian = plannedVP;
             (*BB)->Throttle = 1.0f;
         }
@@ -60,23 +60,16 @@ namespace Action
     Vector3 AltitudeSafetyCheck::CalculateEmergencyClimb(CPPBlackBoard* BB)
     {
         Vector3 myLocation = BB->MyLocation_Cartesian;
-        Vector3 myUp = BB->MyUpVector;
+        Vector3 myForward = BB->MyForwardVector;
 
         float currentAltitude = std::abs(myLocation.Z);
         
-        // 응급 상승: 안전 고도까지 상승 + 추가 마진
-        // 현재 고도에서 200m 상승하거나, 최소 안전고도 + 100m 중 큰 값
-        float emergencyMargin = 200.0f;  // 응급 상승 마진
-        float safetyMargin = 100.0f;     // 안전 고도 추가 마진
-        float targetAltitude = std::max(currentAltitude + emergencyMargin, MIN_SAFE_ALTITUDE + safetyMargin);
+        // 🔥 더 적극적인 응급 상승
+        float targetAltitude = std::max(1000.0f, currentAltitude + 500.0f);  // 최소 1000m
 
-        Vector3 emergencyPoint = myLocation;
-        emergencyPoint.Z = targetAltitude;
-
-        // 약간 전진하며 상승 (실속 방지)
-        Vector3 myForward = BB->MyForwardVector;
-        emergencyPoint.X += myForward.X * 300.0f;
-        emergencyPoint.Y += myForward.Y * 300.0f;
+        // 🔥 더 가까운 거리에 VP 설정 (빠른 대응)
+        Vector3 emergencyPoint = myLocation + myForward * 100.0f;  // 300m → 100m
+        emergencyPoint.Z = -targetAltitude;
 
         std::cout << "[CalculateEmergencyClimb] Current: " << currentAltitude 
                   << "m -> Target: " << targetAltitude << "m (NED Z: " << emergencyPoint.Z << ")" << std::endl;

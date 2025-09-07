@@ -30,6 +30,8 @@ if __name__ == "__main__":
         # [N, E, D, Roll, Pitch, Initial Heading(deg), Speed(m/s)]
         'ownship': [1000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 300.0],
         'target': [6000.0, 0.0, -7000.0, 0.0, 0.0, 180.0, 300.0],
+        # 'target': [1000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 300.0],
+        # 'ownship': [6000.0, 0.0, -7000.0, 0.0, 0.0, 180.0, 300.0],
     }
     
     AIP_ownship = CppBT.AIPilot("AIP_DCS.dll")
