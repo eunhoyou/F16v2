@@ -211,16 +211,15 @@ void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
 {
     BB->RunningTime += BB->DeltaSecond;
     
-    // 0.5초마다 로그 기록
+    // 1초마다 로그 기록
     bool should_log = (BB->RunningTime - last_log_time) >= log_interval;
-    
-    // BT 실행은 매번
+	
     NodeStatus result = tree.tickRoot();
     
     VP = Vector3(BB->VP_Cartesian.X, BB->VP_Cartesian.Y, BB->VP_Cartesian.Z);
     Throttle = BB->Throttle;
     
-    // 로그는 0.5초 주기로만 기록
+    // 로그는 1초 주기 기록
     if (should_log) {
         last_log_time = BB->RunningTime;
         

@@ -29,7 +29,6 @@ namespace Action
         Vector3 CalculateEntryWindow(CPPBlackBoard* BB);     // 엔트리 윈도우 진입
         Vector3 CalculateLagPursuit(CPPBlackBoard* BB);      // 래그 추적 (3000피트까지)
         Vector3 CalculateLeadPursuit(CPPBlackBoard* BB);     // 리드 추적 (3000피트 이내)
-        Vector3 CalculateGunTracking(CPPBlackBoard* BB);     // WEZ 내 기총 추적
 
         // 교본 기반 계산 헬퍼 함수들
         float CalculateCornerSpeed(CPPBlackBoard* BB);       // F-16 코너 속도

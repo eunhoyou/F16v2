@@ -116,7 +116,7 @@ namespace Action
         Vector3 escapePoint = myLocation + escapeDirection * escapeDistance;
         
         // 교본: "수직 공간 활용" - 3차원 기동
-        escapePoint.Z = myLocation.Z - 200.0f;  // 200m 상승
+        escapePoint.Z = myLocation.Z + 200.0f;  // 200m 상승
         
         std::cout << "[EmergencyWEZEvasion] 90-degree escape, distance: " << escapeDistance << "m" << std::endl;
         return escapePoint;
@@ -153,7 +153,7 @@ namespace Action
         Vector3 liftVectorPoint = myLocation + turnDirection * defensiveDistance;
         
         // 교본: "기수를 수평선 아래로 하고 돌 때 추가적인 G"
-        liftVectorPoint.Z = myLocation.Z + 150.0f;  // 150m 강하 (NED)
+        liftVectorPoint.Z = myLocation.Z - 150.0f;  // 150m 강하 (NED)
         
         std::cout << "[LiftVectorDefense] 8G turn, radius: " << turnRadius 
                   << "m, Corner speed: " << cornerSpeed << "m/s" << std::endl;
@@ -206,7 +206,7 @@ namespace Action
         if (aspectAngle > 90.0f) {
             // 적기가 오버슛 중 - 교본: "리버스를 해서 유리한 상황을 얻는다"
             Vector3 reversalPoint = targetLocation + targetForward * 300.0f;
-            reversalPoint.Z = myLocation.Z - 100.0f; // 약간 상승
+            reversalPoint.Z = myLocation.Z + 100.0f; // 약간 상승
             
             std::cout << "[CounterAttack] Enemy overshoot - Reversal maneuver" << std::endl;
             return reversalPoint;
@@ -270,3 +270,4 @@ namespace Action
             return 0.9f;  // 적당한 추력 유지
         }
     }
+}

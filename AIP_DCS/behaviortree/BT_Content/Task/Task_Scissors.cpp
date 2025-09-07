@@ -199,7 +199,7 @@ namespace Action
         float turnRadius = CalculateTurnRadius(cornerSpeed, 8.0f);
         
         Vector3 aggressivePoint = myLocation + toPredict * (turnRadius * 1.5f);
-        aggressivePoint.Z = myLocation.Z - 100.0f; // 약간 상승
+        aggressivePoint.Z = myLocation.Z + 100.0f; // 약간 상승
 
         std::cout << "[AggressiveScissors] Lead time: " << leadTime 
                   << "s, Turn radius: " << turnRadius << "m" << std::endl;
@@ -281,7 +281,7 @@ namespace Action
         Vector3 ratePoint = myLocation + rateDirection * turnRadius;
         
         // 교본: "수직 기동으로 선회율 증가"
-        ratePoint.Z = myLocation.Z + 50.0f; // 약간 강하로 래디얼 G 증가
+        ratePoint.Z = myLocation.Z - 50.0f; // 약간 강하로 래디얼 G 증가
 
         std::cout << "[RateFight] Corner speed: " << cornerSpeed 
                   << "m/s, Max turn radius: " << turnRadius << "m" << std::endl;
@@ -322,7 +322,7 @@ namespace Action
 
         // 수직 성분 추가로 3차원 분리
         Vector3 separationPoint = myLocation + separationDirection * 1000.0f;
-        separationPoint.Z = myLocation.Z - 200.0f; // 200m 상승
+        separationPoint.Z = myLocation.Z + 200.0f; // 200m 상승
 
         std::cout << "[EmergencySeparation] Collision avoidance maneuver!" << std::endl;
         return separationPoint;

@@ -24,7 +24,7 @@ namespace Action
         {
             std::cout << "[Task_WeaponEngagement] IN WEZ - Precision targeting" << std::endl;
             // WEZ 내: 거리는 이미 적정, 각도(±2도)만 정밀 조준
-            (*BB)->VP_Cartesian = CalculatePrecisionAiming(BB.value());
+            (*BB)->VP_Cartesian = CalculateAiming(BB.value());
             (*BB)->Throttle = CalculateWEZThrottle(BB.value());
         }
         else if (IsWEZApproachable(BB.value()))
@@ -45,7 +45,7 @@ namespace Action
         return NodeStatus::SUCCESS;
     }
 
-    Vector3 Task_WeaponEngagement::CalculatePrecisionAiming(CPPBlackBoard* BB)
+    Vector3 Task_WeaponEngagement::CalculateAiming(CPPBlackBoard* BB)
     {
         // 시뮬레이터 특성: WEZ 내에서는 단순 조준만으로 즉시 타격
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
@@ -56,22 +56,7 @@ namespace Action
         // 시뮬레이터에서는 복잡한 리드 계산 불필요 - 정확한 조준이 핵심
         Vector3 aimPoint = targetLocation;
         
-        // 미세 조정: LOS가 ±2도 이내로 들어가도록 보정
-        if (std::abs(los) > 1.0f) {
-            // LOS 보정을 위한 미세 위치 조정
-            Vector3 myForward = BB->MyForwardVector;
-            Vector3 myRight = BB->MyRightVector;
-            
-            // LOS 각도를 줄이기 위한 측방 이동
-            float correctionDistance = 50.0f; // 50m 미세 조정
-            if (los > 0) {
-                aimPoint = aimPoint + myRight * correctionDistance;
-            } else {
-                aimPoint = aimPoint - myRight * correctionDistance;
-            }
-        }
-        
-        std::cout << "[PrecisionAiming] Target LOS: " << los 
+        std::cout << "[CalculateAiming] Target LOS: " << los 
                   << ", Fine adjustment applied" << std::endl;
         
         return aimPoint;

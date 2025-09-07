@@ -115,7 +115,7 @@ namespace Action
         float targetAltitude = std::abs(targetLocation.Z);
         
         if (myAltitude < targetAltitude + 200.0f) {
-            tacticalPoint.Z = myLocation.Z - 300.0f; // 300m 상승으로 고도 우위
+            tacticalPoint.Z = myLocation.Z + 300.0f; // 300m 상승으로 고도 우위
         } else {
             tacticalPoint.Z = myLocation.Z; // 현재 고도 유지
         }
@@ -146,7 +146,7 @@ namespace Action
         Vector3 leadTurnPoint = myLocation + leadDirection * leadDistance + myForward * (mySpeed * 2.0f);
         
         // 교본: "기수를 10도 정도 아래로 한 슬라이스 턴"
-        leadTurnPoint.Z = myLocation.Z + 150.0f; // NED에서 150m 강하
+        leadTurnPoint.Z = myLocation.Z - 150.0f; // NED에서 150m 강하
 
         std::cout << "[CalculateLeadTurn] Turn radius: " << turnRadius 
                   << "m, Lead distance: " << leadDistance << "m" << std::endl;
@@ -175,7 +175,7 @@ namespace Action
         Vector3 slicePoint = myLocation + sliceDirection * sliceDistance + myForward * (mySpeed * 2.5f);
         
         // 교본: "기수를 수평선 아래로 하고 슬라이스" - 래디얼 G 이득
-        slicePoint.Z = myLocation.Z + 400.0f; // NED에서 400m 강하
+        slicePoint.Z = myLocation.Z - 400.0f; // NED에서 400m 강하
 
         std::cout << "[AggressiveSlice] 8G turn, radius: " << turnRadius << "m" << std::endl;
         return slicePoint;
@@ -199,7 +199,7 @@ namespace Action
         float turnDistance = turnRadius * 1.5f;
 
         Vector3 slicePoint = myLocation + turnDirection * turnDistance + myForward * (mySpeed * 2.0f);
-        slicePoint.Z = myLocation.Z + 200.0f; // 적당한 강하
+        slicePoint.Z = myLocation.Z - 200.0f; // 적당한 강하
 
         return slicePoint;
     }
@@ -218,7 +218,7 @@ namespace Action
         if (mySpeed > overTopSpeed && myAltitude < 8000.0f) {
             // 수직 상승 가능
             Vector3 verticalPoint = myLocation + myForward * (mySpeed * 1.5f);
-            verticalPoint.Z = myLocation.Z - 600.0f; // 600m 상승
+            verticalPoint.Z = myLocation.Z + 600.0f; // 600m 상승
             std::cout << "[VerticalManeuver] Climbing 600m for energy advantage" << std::endl;
             return verticalPoint;
         } else {
@@ -271,7 +271,7 @@ namespace Action
         // 교본: "에스케이프 윈도우가 열려있을 때 신속 이탈"
         float escapeDistance = mySpeed * 8.0f; // 8초간 최대 속도
         Vector3 escapePoint = myLocation + myForward * escapeDistance;
-        escapePoint.Z = myLocation.Z - 500.0f; // 상승하며 이탈
+        escapePoint.Z = myLocation.Z + 500.0f; // 상승하며 이탈
         
         std::cout << "[CalculateDisengagement] High speed escape with climb" << std::endl;
         return escapePoint;

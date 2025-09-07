@@ -183,12 +183,6 @@ namespace Action
         return leadPoint;
     }
 
-    Vector3 Task_OffensiveBFM::CalculateGunTracking(CPPBlackBoard* BB)
-    {
-        // WEZ 내에서는 단순히 적기를 조준 (즉시 타격 시스템)
-        return BB->TargetLocaion_Cartesian;
-    }
-
     Vector3 Task_OffensiveBFM::OptimizeWEZAngle(CPPBlackBoard* BB)
     {
         // WEZ 내에서 각도 최적화 (±2도 내로 조정)
