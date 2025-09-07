@@ -21,20 +21,18 @@ namespace Action
         static constexpr float WEZ_MAX_ANGLE = 2.0f;    // ±2도
         static constexpr float M_PI = 3.14159265359f;
 
-        // 무기 교전 관련 함수들
-        Vector3 CalculateGunTrackingPoint(CPPBlackBoard* BB);
-        Vector3 CalculateWEZApproach(CPPBlackBoard* BB);
-        Vector3 CalculateWEZEntry(CPPBlackBoard* BB);
-        Vector3 CalculateInterceptCourse(CPPBlackBoard* BB);
-        Vector3 ApplyGunLeadCorrection(Vector3 basePoint, CPPBlackBoard* BB);
+        // 시뮬레이터 특성에 맞춘 무기 교전 함수들
+        Vector3 CalculatePrecisionAiming(CPPBlackBoard* BB);      // WEZ 내 정밀 조준
+        Vector3 CalculateWEZEntry(CPPBlackBoard* BB);             // WEZ 진입 경로
+        Vector3 CalculateRapidApproach(CPPBlackBoard* BB);        // 신속 접근
+        Vector3 CalculateInterceptCourse(CPPBlackBoard* BB);      // 요격 코스
         
-        // 계산 헬퍼 함수들
-        float CalculateTimeOfFlight(float distance);
-        float CalculateEngagementThrottle(CPPBlackBoard* BB);
+        // 스로틀 제어
+        float CalculateWEZThrottle(CPPBlackBoard* BB);
         
         // 상태 확인 함수들
         bool IsInWEZ(CPPBlackBoard* BB);
-        bool IsApproachingWEZ(CPPBlackBoard* BB);
+        bool IsWEZApproachable(CPPBlackBoard* BB);
 
     public:
         Task_WeaponEngagement(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)

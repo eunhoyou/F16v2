@@ -32,6 +32,13 @@ CPPBlackBoard::CPPBlackBoard()
 	MyAngleOff_Degree = 0;
 	MyAspectAngle_Degree = 0;
 
+    MyCurrentNz = 0;          // 내 현재 수직 G-load (Nz)
+    MyCurrentNy = 0;          // 내 현재 측면 G-load (Ny)
+    TargetCurrentNz = 0;      // 적기 현재 수직 G-load
+    TargetCurrentNy = 0;      // 적기 현재 측면 G-load
+    MyTotalG = 0;             // sqrt(Nz² + Ny²)
+    TargetTotalG = 0;         // 적기 총 G
+
 	BFM = NONE;
 	ACM = EF;
 	

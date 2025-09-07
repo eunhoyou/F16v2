@@ -138,6 +138,12 @@ public:
 	BFM_Mode BFM;											//현재 BFM (OBFM, HABFM, DBFM, DETECTING, SCISSORS, NONE)
 	ACM_Mode ACM;											//현재 ACM (EF, SF)
 
+	float MyCurrentNz;          							// 내 현재 수직 G-load (Nz)
+    float MyCurrentNy;          							// 내 현재 측면 G-load (Ny)
+    float TargetCurrentNz;     								// 적기 현재 수직 G-load
+	float TargetCurrentNy;      							// 적기 현재 측면 G-load
+    float MyTotalG;             							// sqrt(Nz² + Ny²)
+    float TargetTotalG;        			 					// 적기 총 G
 
 	TeamColor Team;											//팀 컬러 (BLUE, RED, UNKNOWN)
 

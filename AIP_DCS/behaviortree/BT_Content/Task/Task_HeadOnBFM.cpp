@@ -1,11 +1,4 @@
 #include "Task_HeadOnBFM.h"
-#include <algorithm> // For std::min/max
-#include <cmath>     // For std::abs, M_PI, sin, cos
-
-// Define M_PI if it's not available (for MSVC)
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 namespace Action
 {
@@ -25,17 +18,15 @@ namespace Action
         CPPBlackBoard* BB = BB_opt.value();
         
         float distance = BB->Distance;
-        float mySpeed = BB->MySpeed_MS;
-        float targetSpeed = BB->TargetSpeed_MS;
-        float myAltitude = static_cast<float>(std::abs(BB->MyLocation_Cartesian.Z));
         float los = BB->Los_Degree;
         float aspectAngle = BB->MyAspectAngle_Degree;
+        float angleOff = BB->MyAngleOff_Degree;
 
         std::cout << "[Task_HeadOnBFM] Distance: " << distance 
-                  << "m, MySpeed: " << mySpeed 
-                  << "m/s, TargetSpeed: " << targetSpeed 
-                  << "m/s, LOS: " << los << ", AA: " << aspectAngle << "" << std::endl;
+                  << "m, LOS: " << los << ", AA: " << aspectAngle 
+                  << ", AO: " << angleOff << std::endl;
 
+        // 교본: "에스케이프 윈도우 상태를 항상 파악"
         if (ShouldDisengage(BB)) {
             std::cout << "[Task_HeadOnBFM] Escape window open - disengaging" << std::endl;
             BB->VP_Cartesian = CalculateDisengagement(BB);
@@ -43,43 +34,56 @@ namespace Action
             return NodeStatus::SUCCESS;
         }
 
-        if (distance > 6000.0f) {
+        // 교본: WEZ 우선 체크 (시뮬레이터 특성)
+        if (IsInWEZ(distance, los)) {
+            std::cout << "[Task_HeadOnBFM] In WEZ - immediate engagement" << std::endl;
+            BB->VP_Cartesian = BB->TargetLocaion_Cartesian; // 단순 조준
+            BB->Throttle = 0.8f;
+            return NodeStatus::SUCCESS;
+        }
+
+        // 교본 기반 거리별 전술 선택
+        if (distance > LONG_RANGE_THRESHOLD) {
+            // 원거리: 전술적 접근
             std::cout << "[Task_HeadOnBFM] Long range - tactical approach" << std::endl;
             BB->VP_Cartesian = CalculateTacticalApproach(BB);
-            BB->Throttle = 0.85f;
+            BB->Throttle = 0.9f;
         }
-        else if (distance > 3000.0f && distance <= 6000.0f) {
+        else if (distance > MEDIUM_RANGE_THRESHOLD) {
+            // 중거리: 리드 턴 고려
             if (ShouldInitiateLeadTurn(BB)) {
                 std::cout << "[Task_HeadOnBFM] Medium range - lead turn" << std::endl;
                 BB->VP_Cartesian = CalculateLeadTurn(BB);
-                BB->Throttle = 0.8f;
+                BB->Throttle = CalculateCornerSpeedThrottle(BB);
             } else {
                 std::cout << "[Task_HeadOnBFM] Medium range - offset approach" << std::endl;
                 BB->VP_Cartesian = CalculateOffsetApproach(BB);
                 BB->Throttle = 0.85f;
             }
         }
-        else if (distance > 1500.0f && distance <= 3000.0f) {
+        else if (distance > CLOSE_RANGE_THRESHOLD) {
+            // 근거리: 에너지 상태 기반 기동 선택
             float energyState = CalculateEnergyState(BB);
             
-            if (energyState > 0.2f) {
+            if (energyState > ENERGY_ADVANTAGE_THRESHOLD) {
                 std::cout << "[Task_HeadOnBFM] Energy advantage - aggressive slice" << std::endl;
                 BB->VP_Cartesian = CalculateAggressiveSlice(BB);
                 BB->Throttle = 0.7f;
-            } else if (energyState < -0.2f) {
-                std::cout << "[Task_HeadOnBFM] Energy disadvantage - defensive maneuver" << std::endl;
-                BB->VP_Cartesian = CalculateDefensiveManeuver(BB);
-                BB->Throttle = 0.9f;
+            } else if (energyState < -ENERGY_ADVANTAGE_THRESHOLD) {
+                std::cout << "[Task_HeadOnBFM] Energy disadvantage - vertical maneuver" << std::endl;
+                BB->VP_Cartesian = CalculateVerticalManeuver(BB);
+                BB->Throttle = 1.0f;
             } else {
-                std::cout << "[Task_HeadOnBFM] Neutral energy - standard maneuver" << std::endl;
-                BB->VP_Cartesian = CalculateStandardManeuver(BB);
-                BB->Throttle = 0.8f;
+                std::cout << "[Task_HeadOnBFM] Neutral energy - standard slice" << std::endl;
+                BB->VP_Cartesian = CalculateStandardSlice(BB);
+                BB->Throttle = CalculateCornerSpeedThrottle(BB);
             }
         }
         else {
-            std::cout << "[Task_HeadOnBFM] Close range - preparing for BFM transition" << std::endl;
+            // 초근거리: BFM 전환 준비
+            std::cout << "[Task_HeadOnBFM] Very close range - BFM transition" << std::endl;
             BB->VP_Cartesian = CalculateBFMTransition(BB);
-            BB->Throttle = 0.85f;
+            BB->Throttle = CalculateCornerSpeedThrottle(BB);
         }
 
         return NodeStatus::SUCCESS;
@@ -92,31 +96,26 @@ namespace Action
         Vector3 targetRight = BB->TargetRightVector;
         float distance = BB->Distance;
 
-        // 제한된 오프셋 (과도한 기동 방지)
-        float offsetAngle = 20.0f * M_PI / 180.0f; // 30도 → 20도로 감소
-        float approachDistance = std::min(distance * 0.6f, 2000.0f); // 최대 거리 제한
+        // 교본: "적기의 턴 서클 밖에서는 터닝 룸을 만들려고 하면 안된다"
+        // 제한된 오프셋으로 안전한 접근
+        float offsetAngle = 15.0f * M_PI / 180.0f; // 15도로 보수적 설정
+        float approachDistance = std::min(distance * 0.5f, 1500.0f);
 
-        // 더 안정적인 측면 선택
+        // 측면 선택: 에너지와 지형 고려
         Vector3 toMe = myLocation - targetLocation;
         float rightDot = toMe.dot(targetRight);
         float sideMultiplier = (rightDot > 0) ? 1.0f : -1.0f;
 
-        // 계산된 오프셋이 합리적인 범위 내인지 검증
         Vector3 sideOffset = targetRight * sideMultiplier * approachDistance * std::sin(offsetAngle);
         Vector3 frontOffset = targetForward * (-approachDistance * std::cos(offsetAngle));
         Vector3 tacticalPoint = targetLocation + frontOffset + sideOffset;
 
-        // VP 유효성 검증
-        float vpDistance = myLocation.distance(tacticalPoint);
-        if (vpDistance > distance * 2.0f) {
-            // VP가 너무 멀면 더 보수적으로 설정
-            tacticalPoint = myLocation + (targetLocation - myLocation) * 0.7f;
-        }
-
-        // 고도 관리 개선
-        float altitudeDiff = myLocation.Z - targetLocation.Z;
-        if (altitudeDiff > -200.0f) { // 고도 우위가 부족하면
-            tacticalPoint.Z = myLocation.Z - 300.0f; // 300m 상승
+        // 고도 관리: 교본의 "위치 에너지" 개념
+        float myAltitude = std::abs(myLocation.Z);
+        float targetAltitude = std::abs(targetLocation.Z);
+        
+        if (myAltitude < targetAltitude + 200.0f) {
+            tacticalPoint.Z = myLocation.Z - 300.0f; // 300m 상승으로 고도 우위
         } else {
             tacticalPoint.Z = myLocation.Z; // 현재 고도 유지
         }
@@ -124,31 +123,44 @@ namespace Action
         return tacticalPoint;
     }
 
-    Vector3 Task_HeadOnBFM::CalculateOffsetApproach(CPPBlackBoard* BB)
+    Vector3 Task_HeadOnBFM::CalculateLeadTurn(CPPBlackBoard* BB)
     {
+        // 교본: "리드 턴은 에너지를 위치로 바꾸는 가장 효과적인 방법"
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
+        Vector3 myForward = BB->MyForwardVector;
+        float mySpeed = BB->MySpeed_MS;
         float distance = BB->Distance;
 
+        // 교본: "적기의 각속도가 빠르게 커지기 시작할 때 선회 시작"
         Vector3 toTarget = (targetLocation - myLocation) / distance;
-        float offsetDistance = distance * 0.25f;
+        float dotRight = toTarget.dot(myRight);
+        Vector3 leadDirection = (dotRight > 0) ? myRight : myRight * -1.0f;
 
-        float rightDot = toTarget.dot(myRight);
-        Vector3 offsetDirection = myRight * ((rightDot > 0) ? -1.0f : 1.0f);
+        // 교본: "최대 G로 리드 턴" - 코너 속도에서 8G
+        float cornerSpeed = CalculateCornerSpeed(BB);
+        float turnRadius = CalculateTurnRadius(cornerSpeed, 8.0f);
+        float leadDistance = turnRadius * 1.8f; // 교본의 리드 턴 비율
 
-        Vector3 offsetPoint = targetLocation + offsetDirection * offsetDistance;
-        offsetPoint.Z = myLocation.Z;
+        Vector3 leadTurnPoint = myLocation + leadDirection * leadDistance + myForward * (mySpeed * 2.0f);
+        
+        // 교본: "기수를 10도 정도 아래로 한 슬라이스 턴"
+        leadTurnPoint.Z = myLocation.Z + 150.0f; // NED에서 150m 강하
 
-        return offsetPoint;
+        std::cout << "[CalculateLeadTurn] Turn radius: " << turnRadius 
+                  << "m, Lead distance: " << leadDistance << "m" << std::endl;
+
+        return leadTurnPoint;
     }
 
     Vector3 Task_HeadOnBFM::CalculateAggressiveSlice(CPPBlackBoard* BB)
     {
+        // 교본: "에너지 우위 시 공격적 슬라이스 턴"
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
-        Vector3 myForward = BB->MyForwardVector;
         Vector3 myRight = BB->MyRightVector;
+        Vector3 myForward = BB->MyForwardVector;
         float mySpeed = BB->MySpeed_MS;
         float distance = BB->Distance;
 
@@ -156,39 +168,22 @@ namespace Action
         float dotRight = toTarget.dot(myRight);
         Vector3 sliceDirection = (dotRight > 0) ? myRight : myRight * -1.0f;
 
-        float turnRadius = (mySpeed * mySpeed) / (9.81f * 7.0f);
-        float sliceDistance = turnRadius * 1.5f;
+        // 교본: "8G로 슬라이스" - 공격적 기동
+        float turnRadius = CalculateTurnRadius(mySpeed, 8.0f);
+        float sliceDistance = turnRadius * 2.0f;
 
         Vector3 slicePoint = myLocation + sliceDirection * sliceDistance + myForward * (mySpeed * 2.5f);
-        slicePoint.Z = myLocation.Z - 400.0f; // NED 좌표계에서 400m 상승
+        
+        // 교본: "기수를 수평선 아래로 하고 슬라이스" - 래디얼 G 이득
+        slicePoint.Z = myLocation.Z + 400.0f; // NED에서 400m 강하
 
-        std::cout << "[AggressiveSlice] 7G turn, radius: " << turnRadius << "m" << std::endl;
+        std::cout << "[AggressiveSlice] 8G turn, radius: " << turnRadius << "m" << std::endl;
         return slicePoint;
     }
 
-    Vector3 Task_HeadOnBFM::CalculateDefensiveManeuver(CPPBlackBoard* BB)
+    Vector3 Task_HeadOnBFM::CalculateStandardSlice(CPPBlackBoard* BB)
     {
-        Vector3 myLocation = BB->MyLocation_Cartesian;
-        Vector3 myForward = BB->MyForwardVector;
-        float mySpeed = BB->MySpeed_MS;
-        float myAltitude = std::abs((float)myLocation.Z);
-
-        if (myAltitude < 6000.0f && mySpeed > 250.0f) {
-            float climbHeight = 500.0f;
-            Vector3 climbPoint = myLocation + myForward * (mySpeed * 2.0f);
-            climbPoint.Z = myLocation.Z - climbHeight;  // NED 좌표계에서 상승
-            std::cout << "[DefensiveManeuver] Climbing 500m for energy" << std::endl;
-            return climbPoint;
-        } else {
-            Vector3 conservePoint = myLocation + myForward * (mySpeed * 3.0f);
-            conservePoint.Z = myLocation.Z;  // 수평 비행
-            std::cout << "[DefensiveManeuver] Level flight for energy conservation" << std::endl;
-            return conservePoint;
-        }
-    }
-
-    Vector3 Task_HeadOnBFM::CalculateStandardManeuver(CPPBlackBoard* BB)
-    {
+        // 교본: "표준 슬라이스 - 7G 선회"
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
@@ -200,13 +195,58 @@ namespace Action
         float dotRight = toTarget.dot(myRight);
         Vector3 turnDirection = (dotRight > 0) ? myRight : myRight * -1.0f;
 
-        float turnRadius = (mySpeed * mySpeed) / (9.81f * 6.0f);
-        float turnDistance = turnRadius * 1.2f;
+        float turnRadius = CalculateTurnRadius(mySpeed, 7.0f);
+        float turnDistance = turnRadius * 1.5f;
 
-        Vector3 standardPoint = myLocation + turnDirection * turnDistance + myForward * (mySpeed * 2.0f);
-        standardPoint.Z = myLocation.Z;
+        Vector3 slicePoint = myLocation + turnDirection * turnDistance + myForward * (mySpeed * 2.0f);
+        slicePoint.Z = myLocation.Z + 200.0f; // 적당한 강하
 
-        return standardPoint;
+        return slicePoint;
+    }
+
+    Vector3 Task_HeadOnBFM::CalculateVerticalManeuver(CPPBlackBoard* BB)
+    {
+        // 교본: "에너지 열세 시 수직 기동으로 상황 개선"
+        Vector3 myLocation = BB->MyLocation_Cartesian;
+        Vector3 myForward = BB->MyForwardVector;
+        float mySpeed = BB->MySpeed_MS;
+        float myAltitude = std::abs(myLocation.Z);
+
+        // 교본: "오버 더 탑 스피드 확인" - F-16은 250노트
+        float overTopSpeed = 70.0f; // 250노트 ≈ 70m/s
+        
+        if (mySpeed > overTopSpeed && myAltitude < 8000.0f) {
+            // 수직 상승 가능
+            Vector3 verticalPoint = myLocation + myForward * (mySpeed * 1.5f);
+            verticalPoint.Z = myLocation.Z - 600.0f; // 600m 상승
+            std::cout << "[VerticalManeuver] Climbing 600m for energy advantage" << std::endl;
+            return verticalPoint;
+        } else {
+            // 에너지 부족 - 수평 기동으로 에너지 보존
+            Vector3 conservePoint = myLocation + myForward * (mySpeed * 3.0f);
+            conservePoint.Z = myLocation.Z;
+            std::cout << "[VerticalManeuver] Energy conservation - level flight" << std::endl;
+            return conservePoint;
+        }
+    }
+
+    Vector3 Task_HeadOnBFM::CalculateOffsetApproach(CPPBlackBoard* BB)
+    {
+        Vector3 myLocation = BB->MyLocation_Cartesian;
+        Vector3 targetLocation = BB->TargetLocaion_Cartesian;
+        Vector3 myRight = BB->MyRightVector;
+        float distance = BB->Distance;
+
+        Vector3 toTarget = (targetLocation - myLocation) / distance;
+        float offsetDistance = distance * 0.2f; // 보수적 오프셋
+
+        float rightDot = toTarget.dot(myRight);
+        Vector3 offsetDirection = myRight * ((rightDot > 0) ? -1.0f : 1.0f);
+
+        Vector3 offsetPoint = targetLocation + offsetDirection * offsetDistance;
+        offsetPoint.Z = myLocation.Z;
+
+        return offsetPoint;
     }
 
     Vector3 Task_HeadOnBFM::CalculateBFMTransition(CPPBlackBoard* BB)
@@ -215,42 +255,11 @@ namespace Action
         Vector3 myForward = BB->MyForwardVector;
         float mySpeed = BB->MySpeed_MS;
 
-        Vector3 transitionPoint = myLocation + myForward * (mySpeed * 1.5f);
+        // BFM 전환을 위한 안정적 위치
+        Vector3 transitionPoint = myLocation + myForward * (mySpeed * 1.0f);
         transitionPoint.Z = myLocation.Z;
 
         return transitionPoint;
-    }
-
-    Vector3 Task_HeadOnBFM::CalculateLeadTurn(CPPBlackBoard* BB)
-    {
-        Vector3 myLocation = BB->MyLocation_Cartesian;
-        Vector3 targetLocation = BB->TargetLocaion_Cartesian;
-        Vector3 targetForward = BB->TargetForwardVector;
-        Vector3 myRight = BB->MyRightVector;
-        float targetSpeed = BB->TargetSpeed_MS;
-        float distance = BB->Distance;
-
-        float leadTime = std::min(distance / 800.0f, 4.0f);
-        Vector3 predictedTargetPos = targetLocation + targetForward * targetSpeed * leadTime;
-
-        Vector3 toPredict = (predictedTargetPos - myLocation);
-        // **FIXED ERROR 2**
-        // Use distance() method instead of non-existent magnitude()
-        float predictDistance = myLocation.distance(predictedTargetPos);
-        if (predictDistance > 0.0001f) {
-            toPredict = toPredict / predictDistance;
-        }
-        
-        float dotRight = toPredict.dot(myRight);
-        Vector3 leadDirection = (dotRight > 0) ? myRight : myRight * -1.0f;
-
-        float leadDistance = std::min(distance * 0.4f, 1200.0f);
-        Vector3 leadTurnPoint = myLocation + leadDirection * leadDistance;
-
-        std::cout << "[CalculateLeadTurn] Lead time: " << leadTime 
-                  << "s, Lead distance: " << leadDistance << "m" << std::endl;
-
-        return leadTurnPoint;
     }
 
     Vector3 Task_HeadOnBFM::CalculateDisengagement(CPPBlackBoard* BB)
@@ -259,10 +268,12 @@ namespace Action
         Vector3 myForward = BB->MyForwardVector;
         float mySpeed = BB->MySpeed_MS;
 
-        float escapeDistance = mySpeed * 6.0f;
+        // 교본: "에스케이프 윈도우가 열려있을 때 신속 이탈"
+        float escapeDistance = mySpeed * 8.0f; // 8초간 최대 속도
         Vector3 escapePoint = myLocation + myForward * escapeDistance;
-        escapePoint.Z = myLocation.Z - 300.0f;  // NED 좌표계에서 300m 상승
-        std::cout << "[CalculateDisengagement] Climbing escape" << std::endl;
+        escapePoint.Z = myLocation.Z - 500.0f; // 상승하며 이탈
+        
+        std::cout << "[CalculateDisengagement] High speed escape with climb" << std::endl;
         return escapePoint;
     }
 
@@ -270,15 +281,48 @@ namespace Action
     {
         float mySpeed = BB->MySpeed_MS;
         float targetSpeed = BB->TargetSpeed_MS;
-        float myAltitude = std::abs((float)BB->MyLocation_Cartesian.Z);
-        float targetAltitude = std::abs((float)BB->TargetLocaion_Cartesian.Z);
+        float myAltitude = std::abs(BB->MyLocation_Cartesian.Z);
+        float targetAltitude = std::abs(BB->TargetLocaion_Cartesian.Z);
 
+        // 교본: "운동 에너지 + 위치 에너지"
         float myEnergy = 0.5f * mySpeed * mySpeed + 9.81f * myAltitude;
         float targetEnergy = 0.5f * targetSpeed * targetSpeed + 9.81f * targetAltitude;
         float avgEnergy = (myEnergy + targetEnergy) * 0.5f;
 
-        if (avgEnergy < 1.0f) return 0.0f; // Avoid division by near-zero
+        if (avgEnergy < 1.0f) return 0.0f;
         return (myEnergy - targetEnergy) / avgEnergy;
+    }
+
+    float Task_HeadOnBFM::CalculateCornerSpeed(CPPBlackBoard* BB)
+    {
+        // 교본: F-16 코너 속도 약 450KCAS ≈ 130m/s
+        float altitude = std::abs(BB->MyLocation_Cartesian.Z);
+        float baseCornerSpeed = 130.0f;
+        
+        // 고도 보정
+        float altitudeBonus = (altitude / 10000.0f) * 20.0f;
+        
+        return baseCornerSpeed + altitudeBonus;
+    }
+
+    float Task_HeadOnBFM::CalculateTurnRadius(float speed, float gLoad)
+    {
+        // 교본 공식: TR = V²/(g*G)
+        return (speed * speed) / (9.81f * gLoad);
+    }
+
+    float Task_HeadOnBFM::CalculateCornerSpeedThrottle(CPPBlackBoard* BB)
+    {
+        float mySpeed = BB->MySpeed_MS;
+        float cornerSpeed = CalculateCornerSpeed(BB);
+        
+        // 교본: "코너 속도를 유지하도록 노력한다"
+        if (mySpeed < cornerSpeed - 20.0f) {
+            return 1.0f; // 급가속
+        } else if (mySpeed > cornerSpeed + 20.0f) {
+            return 0.6f; // 감속
+        }
+        return 0.8f; // 유지
     }
 
     bool Task_HeadOnBFM::ShouldInitiateLeadTurn(CPPBlackBoard* BB)
@@ -288,18 +332,13 @@ namespace Action
         float aspectAngle = BB->MyAspectAngle_Degree;
         float angleOff = BB->MyAngleOff_Degree;
 
-        bool distanceCheck = (distance > 2500.0f && distance < 5000.0f);
-        bool angleCheck = (std::abs(los) < 60.0f);
-        bool headOnCheck = (aspectAngle > 150.0f || aspectAngle < 30.0f);
-        bool converging = (angleOff > 90.0f);
+        // 교본: "적기의 각속도가 빠르게 커지기 시작할 때"
+        bool distanceCheck = (distance > 2000.0f && distance < 4000.0f);
+        bool angleCheck = (std::abs(los) < 45.0f);
+        bool headOnCheck = (aspectAngle > 120.0f || aspectAngle < 60.0f);
+        bool converging = (angleOff > 120.0f);
 
-        bool shouldLead = distanceCheck && angleCheck && headOnCheck && converging;
-
-        std::cout << "[ShouldInitiateLeadTurn] Dist:" << distanceCheck 
-                  << " Angle:" << angleCheck << " HeadOn:" << headOnCheck 
-                  << " Conv:" << converging << " -> " << shouldLead << std::endl;
-
-        return shouldLead;
+        return distanceCheck && angleCheck && headOnCheck && converging;
     }
 
     bool Task_HeadOnBFM::ShouldDisengage(CPPBlackBoard* BB)
@@ -308,21 +347,18 @@ namespace Action
         float mySpeed = BB->MySpeed_MS;
         float targetSpeed = BB->TargetSpeed_MS;
         float angleOff = BB->MyAngleOff_Degree;
-        float myAltitude = std::abs((float)BB->MyLocation_Cartesian.Z);
 
-        bool significantSpeedAdvantage = (mySpeed - targetSpeed > 80.0f);
-        bool favorableGeometry = (angleOff > 150.0f && distance > 4000.0f);
-        bool altitudeTooHigh = (myAltitude > 10000.0f);
-        // 🔥 altitudeTooLow 조건 제거 - AltitudeSafetyCheck에서 처리
+        // 교본: "에스케이프 윈도우 상태 판단"
+        bool significantSpeedAdvantage = (mySpeed - targetSpeed > 100.0f);
+        bool favorableGeometry = (angleOff > 150.0f && distance > 3000.0f);
+        bool highAltitudeEscape = (std::abs(BB->MyLocation_Cartesian.Z) > 12000.0f);
 
-        bool shouldDisengage = (significantSpeedAdvantage && favorableGeometry) || 
-                            altitudeTooHigh;
+        return (significantSpeedAdvantage && favorableGeometry) || highAltitudeEscape;
+    }
 
-        if (shouldDisengage) {
-            std::cout << "[ShouldDisengage] Speed:" << significantSpeedAdvantage 
-                    << " Geom:" << favorableGeometry << " AltHigh:" << altitudeTooHigh << std::endl;
-        }
-
-        return shouldDisengage;
+    bool Task_HeadOnBFM::IsInWEZ(float distance, float los)
+    {
+        return (distance >= WEZ_MIN_RANGE && distance <= WEZ_MAX_RANGE) && 
+               (std::abs(los) <= WEZ_MAX_ANGLE);
     }
 }

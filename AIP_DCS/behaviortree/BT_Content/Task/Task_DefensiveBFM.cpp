@@ -15,112 +15,155 @@ namespace Action
 
         float distance = (*BB)->Distance;
         float los = (*BB)->Los_Degree;
+        float aspectAngle = (*BB)->MyAspectAngle_Degree;
         float mySpeed = (*BB)->MySpeed_MS;
 
         std::cout << "[Task_DefensiveBFM] Distance: " << distance 
-                  << "m, LOS: " << los << ", Speed: " << mySpeed << "m/s" << std::endl;
+                  << "m, LOS: " << los 
+                  << ", AspectAngle: " << aspectAngle 
+                  << ", Speed: " << mySpeed << "m/s" << std::endl;
 
-        // WEZ 위험도에 따른 방어 전략 선택
-        if (IsInWEZ(distance, los))
+        // 교본 원칙: "가장 가까운 위협에 대항하여 싸우라"
+        ThreatLevel currentThreat = AssessThreatLevel(BB.value());
+        
+        Vector3 calculated_vp;
+        float defensive_throttle;
+
+        switch (currentThreat)
         {
-            // WEZ 내 - 긴급 회피
-            std::cout << "[Task_DefensiveBFM] IN WEZ! Emergency evasion!" << std::endl;
-            (*BB)->VP_Cartesian = CalculateEmergencyEvasion(BB.value());
-            (*BB)->Throttle = 1.0f;  // 최대 추력
+            case IMMEDIATE_WEZ_THREAT:
+                // WEZ 내 - 교본: "미사일과는 각도로 싸워라"
+                std::cout << "[Task_DefensiveBFM] IMMEDIATE WEZ THREAT - Emergency evasion!" << std::endl;
+                calculated_vp = CalculateEmergencyWEZEvasion(BB.value());
+                defensive_throttle = 1.0f; // 최대 추력
+                break;
+
+            case HIGH_THREAT:
+                // WEZ 접근 중 - 교본: "양력벡터를 적기에게 놓고 최대 G로 선회"
+                std::cout << "[Task_DefensiveBFM] HIGH THREAT - Aggressive defensive turn!" << std::endl;
+                calculated_vp = CalculateLiftVectorDefense(BB.value());
+                defensive_throttle = 1.0f; // 최대 추력
+                break;
+
+            case MODERATE_THREAT:
+                // 일반 방어 상황 - 교본: "적기에게 BFM 문제를 유발"
+                std::cout << "[Task_DefensiveBFM] MODERATE THREAT - Standard defensive BFM!" << std::endl;
+                calculated_vp = CalculateStandardDefensiveTurn(BB.value());
+                defensive_throttle = CalculateDefensiveThrottle(mySpeed);
+                break;
+
+            case LOW_THREAT:
+                // 적기가 BFM 실수 중 - 이용할 기회 모색
+                std::cout << "[Task_DefensiveBFM] LOW THREAT - Exploiting enemy mistake!" << std::endl;
+                calculated_vp = CalculateCounterAttack(BB.value());
+                defensive_throttle = 0.9f;
+                break;
         }
-        else if (IsApproachingWEZ(distance, los))
-        {
-            // WEZ 접근 - 적극적 방어
-            std::cout << "[Task_DefensiveBFM] Approaching WEZ! Aggressive defensive turn!" << std::endl;
-            (*BB)->VP_Cartesian = CalculateAggressiveDefense(BB.value());
-            (*BB)->Throttle = 1.0f;  // 최대 추력
-        }
-        else
-        {
-            // 일반적인 방어 상황 - 표준 방어 선회
-            std::cout << "[Task_DefensiveBFM] Standard defensive turn!" << std::endl;
-            (*BB)->VP_Cartesian = CalculateDefensiveTurn(BB.value());
-            (*BB)->Throttle = CalculateDefensiveThrottle(mySpeed);
-        }
+
+        (*BB)->VP_Cartesian = calculated_vp;
+        (*BB)->Throttle = defensive_throttle;
 
         return NodeStatus::SUCCESS;
     }
 
-    Vector3 Task_DefensiveBFM::CalculateEmergencyEvasion(CPPBlackBoard* BB)
+    Task_DefensiveBFM::ThreatLevel Task_DefensiveBFM::AssessThreatLevel(CPPBlackBoard* BB)
     {
-        // WEZ 내에서 즉시 벗어나기 위한 최우선 기동
+        float distance = BB->Distance;
+        float los = BB->Los_Degree;
+        float aspectAngle = BB->MyAspectAngle_Degree;
+        
+        // WEZ 위협 (최우선)
+        if (IsInWEZ(distance, los)) {
+            return IMMEDIATE_WEZ_THREAT;
+        }
+        
+        // WEZ 접근 위협
+        if (IsApproachingWEZ(distance, los)) {
+            return HIGH_THREAT;
+        }
+        
+        // 일반적인 방어 상황 판단
+        // 교본: "적기가 6시 후방에 있을 때"
+        if (aspectAngle < 45.0f && distance < 2000.0f) {
+            return MODERATE_THREAT;
+        }
+        
+        // 적기가 실수하고 있는 상황
+        // 교본: "적기가 오버슛하거나 에너지를 잃었을 때"
+        return LOW_THREAT;
+    }
+
+    Vector3 Task_DefensiveBFM::CalculateEmergencyWEZEvasion(CPPBlackBoard* BB)
+    {
+        // 교본: "미사일과는 각도로 싸워라" - WEZ에서 90도 각도로 즉시 회피
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
-        Vector3 myForward = BB->MyForwardVector;
         
-        // WEZ에서 가장 빠르게 벗어나는 방향 계산
+        // WEZ에서 가장 빠르게 벗어나는 방향 (90도 회피)
         Vector3 toTarget = targetLocation - myLocation;
         Vector3 escapeDirection;
         
-        // 적기와 수직 방향으로 즉시 회피 (90도 방향)
-        if (toTarget.dot(myRight) > 0)
-        {
-            escapeDirection = myRight * -1.0f;  // 왼쪽으로 회피
-        }
-        else
-        {
-            escapeDirection = myRight;  // 오른쪽으로 회피
+        // 적기와 수직 방향으로 즉시 회피
+        if (toTarget.dot(myRight) > 0) {
+            escapeDirection = myRight * -1.0f;  // 왼쪽으로 급회피
+        } else {
+            escapeDirection = myRight;  // 오른쪽으로 급회피
         }
         
-        // WEZ 최대 거리를 벗어날 만큼 충분한 거리로 회피
-        float escapeDistance = WEZ_MAX_RANGE * 1.5f + BB->MySpeed_MS * 3.0f;
+        // WEZ 최대 거리를 확실히 벗어날 거리
+        float escapeDistance = WEZ_MAX_RANGE * 2.0f + BB->MySpeed_MS * 2.0f;
         Vector3 escapePoint = myLocation + escapeDirection * escapeDistance;
         
-        // 약간의 고도 변경으로 3차원 기동 (교본: 수직 공간 활용)
-        escapePoint.Z = myLocation.Z - 150.0f;  // 150m 상승
+        // 교본: "수직 공간 활용" - 3차원 기동
+        escapePoint.Z = myLocation.Z - 200.0f;  // 200m 상승
         
-        std::cout << "[EmergencyEvasion] Escape distance: " << escapeDistance << "m" << std::endl;
+        std::cout << "[EmergencyWEZEvasion] 90-degree escape, distance: " << escapeDistance << "m" << std::endl;
         return escapePoint;
     }
 
-    Vector3 Task_DefensiveBFM::CalculateAggressiveDefense(CPPBlackBoard* BB)
+    Vector3 Task_DefensiveBFM::CalculateLiftVectorDefense(CPPBlackBoard* BB)
     {
-        // WEZ 접근 시 적기의 BFM 문제를 유발하는 적극적 방어
+        // 교본 핵심: "양력벡터를 적기에게 놓고 코너 속도에서 최대 G로 선회"
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
         float mySpeed = BB->MySpeed_MS;
         float distance = BB->Distance;
-        
-        // 적기 쪽으로 공격적인 방어 선회 (BFM 문제 유발)
-        Vector3 toTarget = targetLocation - myLocation;
+
+        // 교본: "적기 쪽으로 양력벡터를 놓기"
+        Vector3 toTarget = (targetLocation - myLocation);
+        toTarget = toTarget / distance;  // 정규화, 추후 확인
+
+        // 적기를 향한 선회 방향 결정
         Vector3 turnDirection;
-        
-        // 적기 쪽으로 선회하여 양력벡터를 적기에게 놓기
-        if (toTarget.dot(myRight) > 0)
-        {
+        if (toTarget.dot(myRight) > 0) {
             turnDirection = myRight;
-        }
-        else
-        {
+        } else {
             turnDirection = myRight * -1.0f;
         }
         
-        // 코너 속도 기준 최대 선회율로 기동
+        // 교본: 코너 속도에서 최대 선회율
         float cornerSpeed = CalculateCornerSpeed(BB);
-        float turnRadius = CalculateTurnRadius(cornerSpeed, 8.0f);  // 8G 공격적 선회
-        float aggressiveDistance = turnRadius * 2.0f;
+        float maxGLoad = 8.0f; // 교본: "8G로 브렉 턴"
+        float turnRadius = CalculateTurnRadius(cornerSpeed, maxGLoad);
         
-        Vector3 defensePoint = myLocation + turnDirection * aggressiveDistance;
+        // 양력벡터 방향으로 선회 지점 계산
+        float defensiveDistance = turnRadius * 1.5f;
+        Vector3 liftVectorPoint = myLocation + turnDirection * defensiveDistance;
         
-        // 교본: "래디얼 G를 증가시키기 위한" 약간의 강하
-        defensePoint.Z = myLocation.Z + 100.0f;  // 100m 강하 (NED)
+        // 교본: "기수를 수평선 아래로 하고 돌 때 추가적인 G"
+        liftVectorPoint.Z = myLocation.Z + 150.0f;  // 150m 강하 (NED)
         
-        std::cout << "[AggressiveDefense] Turn radius: " << turnRadius 
-                  << "m, Aggressive distance: " << aggressiveDistance << "m" << std::endl;
+        std::cout << "[LiftVectorDefense] 8G turn, radius: " << turnRadius 
+                  << "m, Corner speed: " << cornerSpeed << "m/s" << std::endl;
         
-        return defensePoint;
+        return liftVectorPoint;
     }
 
-    Vector3 Task_DefensiveBFM::CalculateDefensiveTurn(CPPBlackBoard* BB)
+    Vector3 Task_DefensiveBFM::CalculateStandardDefensiveTurn(CPPBlackBoard* BB)
     {
-        // 교본: "양력벡터를 적기에게 놓고 코너 속도에서 최대 G로 선회"
+        // 교본: "적기에게 BFM 문제를 유발하는 표준 방어 선회"
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
@@ -130,34 +173,55 @@ namespace Action
         Vector3 toTarget = targetLocation - myLocation;
         Vector3 turnDirection;
         
-        if (toTarget.dot(myRight) > 0)
-        {
+        if (toTarget.dot(myRight) > 0) {
             turnDirection = myRight;
-        }
-        else
-        {
+        } else {
             turnDirection = myRight * -1.0f;
         }
         
         // 표준 방어 선회 (7G)
         float cornerSpeed = CalculateCornerSpeed(BB);
         float turnRadius = CalculateTurnRadius(cornerSpeed, 7.0f);
-        float defensiveDistance = turnRadius * 1.5f;
+        float defensiveDistance = turnRadius * 1.2f;
         
         Vector3 defensivePoint = myLocation + turnDirection * defensiveDistance;
         
-        // 수평 유지 (일반적인 방어 상황)
+        // 수평 방어 선회 (에너지 보존)
         defensivePoint.Z = myLocation.Z;
         
-        std::cout << "[DefensiveTurn] Standard turn radius: " << turnRadius 
-                  << "m, Corner speed: " << cornerSpeed << "m/s" << std::endl;
+        std::cout << "[StandardDefensive] 7G turn, radius: " << turnRadius << "m" << std::endl;
         
         return defensivePoint;
     }
 
+    Vector3 Task_DefensiveBFM::CalculateCounterAttack(CPPBlackBoard* BB)
+    {
+        // 교본: "적기가 실수를 하면 그 실수를 이용한다"
+        Vector3 myLocation = BB->MyLocation_Cartesian;
+        Vector3 targetLocation = BB->TargetLocaion_Cartesian;
+        Vector3 targetForward = BB->TargetForwardVector;
+        float aspectAngle = BB->MyAspectAngle_Degree;
+        
+        // 적기의 예상 움직임을 고려한 반격 위치
+        if (aspectAngle > 90.0f) {
+            // 적기가 오버슛 중 - 교본: "리버스를 해서 유리한 상황을 얻는다"
+            Vector3 reversalPoint = targetLocation + targetForward * 300.0f;
+            reversalPoint.Z = myLocation.Z - 100.0f; // 약간 상승
+            
+            std::cout << "[CounterAttack] Enemy overshoot - Reversal maneuver" << std::endl;
+            return reversalPoint;
+        } else {
+            // 일반적인 반격 기회
+            Vector3 counterPoint = targetLocation - targetForward * 200.0f;
+            counterPoint.Z = myLocation.Z;
+            
+            std::cout << "[CounterAttack] Standard counter-attack positioning" << std::endl;
+            return counterPoint;
+        }
+    }
+
     bool Task_DefensiveBFM::IsInWEZ(float distance, float los)
     {
-        // WEZ 조건: 152.4-914.4m, ±2도
         bool rangeCheck = (distance >= WEZ_MIN_RANGE && distance <= WEZ_MAX_RANGE);
         bool angleCheck = (std::abs(los) <= WEZ_MAX_ANGLE);
         
@@ -166,9 +230,8 @@ namespace Action
 
     bool Task_DefensiveBFM::IsApproachingWEZ(float distance, float los)
     {
-        // WEZ 접근 상황: WEZ보다 약간 넓은 범위
-        float approachRange = WEZ_MAX_RANGE * 1.3f;  // WEZ 최대 거리의 1.3배
-        float approachAngle = WEZ_MAX_ANGLE * 2.5f;  // WEZ 각도의 2.5배
+        float approachRange = WEZ_MAX_RANGE * 1.5f;
+        float approachAngle = WEZ_MAX_ANGLE * 3.0f;
         
         bool rangeCheck = (distance >= WEZ_MIN_RANGE && distance <= approachRange);
         bool angleCheck = (std::abs(los) <= approachAngle);
@@ -178,7 +241,7 @@ namespace Action
 
     float Task_DefensiveBFM::CalculateCornerSpeed(CPPBlackBoard* BB)
     {
-        // F-16 코너 속도: 약 450KCAS (교본 기준)
+        // 교본: F-16 코너 속도 약 450KCAS
         float altitude = std::abs(BB->MyLocation_Cartesian.Z);
         float baseCornerSpeed = 130.0f;  // 130 m/s ≈ 450 KCAS
         
@@ -199,17 +262,11 @@ namespace Action
         float cornerSpeed = 130.0f;  // 기본 코너 속도
         
         // 교본: "코너 속도를 유지하도록 노력한다"
-        if (mySpeed < cornerSpeed - 15.0f)
-        {
+        if (mySpeed < cornerSpeed - 20.0f) {
             return 1.0f;  // 최대 추력으로 가속
-        }
-        else if (mySpeed > cornerSpeed + 15.0f)
-        {
-            return 0.7f;  // 추력 감소 (선회 성능 우선)
-        }
-        else
-        {
+        } else if (mySpeed > cornerSpeed + 20.0f) {
+            return 0.6f;  // 추력 감소 (선회 성능 우선)
+        } else {
             return 0.9f;  // 적당한 추력 유지
         }
     }
-}
