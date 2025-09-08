@@ -111,6 +111,7 @@ namespace Action
         Vector3 toPredict = predictedTarget - myLocation;
         toPredict.normalize();
 
+        // 교본: "코너 속도에서 최대 G로 선회"
         float cornerSpeed = CalculateCornerSpeed(BB);
         
         float scissorsDistance = mySpeed * 2.0f;
@@ -236,7 +237,7 @@ namespace Action
         float targetSpeed = BB->TargetSpeed_MS;
         float cornerSpeed = 231.5f; // F-16 코너 속도: 약 450KCAS ≈ 231.5m/s
         
-        float tempThrottle = 1;
+        float tempThrottle = currentThrottle;
         // 교본: "코너 속도를 유지하도록 노력한다"
         if (currentSpeed < targetSpeed - 20.0f)
         {

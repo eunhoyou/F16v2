@@ -73,7 +73,7 @@ namespace Action
         float currentSpeed = BB->MySpeed_MS;
         float cornerSpeed = 231.5f; // F-16 코너 속도: 약 450KCAS ≈ 231.5m/s
         
-        float tempThrottle = 1;
+        float tempThrottle = currentThrottle;
         if (currentSpeed < cornerSpeed - 20.0f)
         {
             tempThrottle = currentThrottle * 1.2f;
