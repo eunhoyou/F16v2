@@ -82,13 +82,6 @@ public:
 	int DISID;
 };
 
-/*
-그지같은 구조의 트리&블랙보드 구조를 개선해보기 위하여 만든 블랙보드 객체
-비헤비어트리의 블랙보드 값을 여기에 선언-정의하고 이 블랙보드를 노드에서 호출하여 사용
-모든 자세는 Degree이고 평면기준 자세를 기본으로 함
-
-트리뿐만이 아니고 블랙보드의 변수들도 최대 2대 2까지만 상정하고 변수를 생성해둠
-*/
 class CPPBlackBoard
 {
 public:
@@ -138,12 +131,6 @@ public:
 	BFM_Mode BFM;											//현재 BFM (OBFM, HABFM, DBFM, DETECTING, SCISSORS, NONE)
 	ACM_Mode ACM;											//현재 ACM (EF, SF)
 
-	float MyCurrentNz;          							// 내 현재 수직 G-load (Nz)
-    float MyCurrentNy;          							// 내 현재 측면 G-load (Ny)
-    float TargetCurrentNz;     								// 적기 현재 수직 G-load
-	float TargetCurrentNy;      							// 적기 현재 측면 G-load
-    float MyTotalG;             							// sqrt(Nz² + Ny²)
-    float TargetTotalG;        			 					// 적기 총 G
 
 	TeamColor Team;											//팀 컬러 (BLUE, RED, UNKNOWN)
 

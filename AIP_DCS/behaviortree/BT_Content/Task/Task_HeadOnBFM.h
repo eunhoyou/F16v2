@@ -19,9 +19,9 @@ namespace Action
         static constexpr float M_PI = 3.14159265359f;
         
         // WEZ 상수 (시뮬레이터 특성)
-        static constexpr float WEZ_MIN_RANGE = 152.4f;  // 500 피트
-        static constexpr float WEZ_MAX_RANGE = 914.4f;  // 3000 피트
-        static constexpr float WEZ_MAX_ANGLE = 2.0f;    // ±2도
+        static constexpr float WEZ_MIN_RANGE = 152.4f;  // 500ft
+        static constexpr float WEZ_MAX_RANGE = 914.4f;  // 3000ft
+        static constexpr float WEZ_MAX_ANGLE = 2.0f;
         
         // 교본 기반 거리 임계값
         static constexpr float LONG_RANGE_THRESHOLD = 6000.0f;     // 6km
@@ -32,7 +32,7 @@ namespace Action
         static constexpr float ENERGY_ADVANTAGE_THRESHOLD = 0.2f;  // 20% 에너지 우위
 
         // 교본 기반 거리별 전술 기동 함수들
-        Vector3 CalculateTacticalApproach(CPPBlackBoard* BB);    // 원거리: 태양 활용, 측면 접근
+        Vector3 CalculateTacticalApproach(CPPBlackBoard* BB);    // 원거리: 측면 접근
         Vector3 CalculateLeadTurn(CPPBlackBoard* BB);            // 중거리: 리드 턴 실행
         Vector3 CalculateAggressiveSlice(CPPBlackBoard* BB);     // 에너지 우위: 8G 슬라이스
         Vector3 CalculateStandardSlice(CPPBlackBoard* BB);       // 표준: 7G 슬라이스
@@ -44,7 +44,6 @@ namespace Action
         // 교본 기반 상황 판단 함수들
         bool ShouldInitiateLeadTurn(CPPBlackBoard* BB);         // 리드 턴 실행 조건
         bool ShouldDisengage(CPPBlackBoard* BB);                // 이탈 윈도우 판단
-        bool IsInWEZ(float distance, float los);               // WEZ 내부 확인
 
         // 교본 기반 에너지 및 성능 계산
         float CalculateEnergyState(CPPBlackBoard* BB);          // 총 에너지 상태 비교

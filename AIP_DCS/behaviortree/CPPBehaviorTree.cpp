@@ -138,8 +138,6 @@ StickValue UCPPBehaviorTree::Step(PlaneInfo MyInfo, int NumofOtherPlane, PlaneIn
 			others[i].Resv0 = OthersInfo[i].Resv0;
 			others[i].Resv1 = OthersInfo[i].Resv1;
 			others[i].Resv2 = OthersInfo[i].Resv2;
-			
-			
 		}
 
 		//블랙보드의 아군기, 적군기 List 초기화
@@ -170,12 +168,7 @@ StickValue UCPPBehaviorTree::Step(PlaneInfo MyInfo, int NumofOtherPlane, PlaneIn
 					BB->Enemy.push_back(others[i]);
 				}
 			}
-			else
-			{
-
-			}
 		}
-
 
 		bool AimmingMode;
 
@@ -183,9 +176,6 @@ StickValue UCPPBehaviorTree::Step(PlaneInfo MyInfo, int NumofOtherPlane, PlaneIn
 
 		//블랙보드에 입력된 정보를 바탕으로 비헤비어트리 Run
 		RunCPPBT(VP, Throttle, AimmingMode);
-
-		// //임시 코드
-		// Throttle = 1.0;
 
 		R = Controller.GetStick(
 			BB->MyLocation_Cartesian,
@@ -213,7 +203,7 @@ void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
     
     // 1초마다 로그 기록
     bool should_log = (BB->RunningTime - last_log_time) >= log_interval;
-	
+
     NodeStatus result = tree.tickRoot();
     
     VP = Vector3(BB->VP_Cartesian.X, BB->VP_Cartesian.Y, BB->VP_Cartesian.Z);
