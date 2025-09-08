@@ -1,8 +1,6 @@
 <root main_tree_to_execute = "MainTree">
     <BehaviorTree ID="MainTree">
-        <!-- 메인 시퀀스 -->
         <Sequence>
-            <!-- 상황 업데이트 -->
             <Sequence>
                 <SelectTarget name="SelectTarget" BB="{BB}"/>
                 <DirectionVectorUpdate name="DirectionVectorUpdate" BB="{BB}"/>
@@ -13,10 +11,8 @@
                 <BFM_ModeDetermination name="BFM_ModeDetermination" BB="{BB}" />
             </Sequence>
 
-            <!-- BFM 모드별 행동 선택 -->
             <Fallback>
 
-                <!-- WEZ 내 무기 교전 -->
                 <Sequence>
                     <DECO_DistanceCheck name="DECO_DistanceCheck" BB="{BB}" UpDown="Greater" Distance="152.4" />
                     <DECO_DistanceCheck name="DECO_DistanceCheck" BB="{BB}" UpDown="Less" Distance="914.4" />
@@ -24,7 +20,6 @@
                     <Task_WeaponEngagement BB="{BB}" />
                 </Sequence>
 
-                <!-- 공격 BFM -->
                 <Sequence>
                     <DECO_BFMCheck name="DECO_BFMCheck" BB="{BB}" CheckBFM="OBFM" />
                     <Fallback>
@@ -36,13 +31,11 @@
                     </Fallback>
                 </Sequence>
 
-                <!-- 방어 BFM -->
                 <Sequence>
                     <DECO_BFMCheck name="DECO_BFMCheck" BB="{BB}" CheckBFM="DBFM" />
                     <Task_DefensiveBFM name="Task_DefensiveBFM" BB="{BB}" />
                 </Sequence>
 
-                <!-- 정면 BFM -->
                 <Sequence>
                     <DECO_BFMCheck name="DECO_BFMCheck" BB="{BB}" CheckBFM="HABFM" />
                     <Task_HeadOnBFM name="Task_HeadOnBFM" BB="{BB}" />
