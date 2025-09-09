@@ -19,24 +19,31 @@ namespace Action
             std::cout << "[AltitudeSafetyCheck] EMERGENCY: Altitude below " << EMERGENCY_ALTITUDE << "m!" << std::endl;
             Vector3 currentVP = (*BB)->VP_Cartesian;
 
-            float vpAltitude = currentVP.Z;
             std::cout << "[AltitudeSafetyCheck] Adjusting VP altitude to safe level (" << SAFE_ALTITUDE << "m)" << std::endl;
+
             currentVP.Z = SAFE_ALTITUDE;
             (*BB)->VP_Cartesian = currentVP;
-            (*BB)->Throttle = 1.0f;
+            (*BB)->Throttle = 0.8f;
+
+            std::cout << "[AltitudeSafetyCheck] currentAltitude: " << currentAltitude << "m!" << std::endl;
+            std::cout << "[AltitudeSafetyCheck] currentVP.Z: " << currentVP.Z << "m!" << std::endl;
+            std::cout << "[AltitudeSafetyCheck] (*BB)->Throttle: " << (*BB)->Throttle << "!" << std::endl;
             return NodeStatus::SUCCESS;
         }
 
-        if (currentAltitude <= CRITICAL_ALTITUDE)
+        else if (currentAltitude <= CRITICAL_ALTITUDE)
         {
             std::cout << "[AltitudeSafetyCheck] WARNING: Altitude below " << CRITICAL_ALTITUDE << "m!" << std::endl;
             Vector3 currentVP = (*BB)->VP_Cartesian;
 
-            float vpAltitude = currentVP.Z;
             std::cout << "[AltitudeSafetyCheck] Adjusting VP altitude to safe level (" << SAFE_ALTITUDE << "m)" << std::endl;
             currentVP.Z = SAFE_ALTITUDE;
             (*BB)->VP_Cartesian = currentVP;
-            (*BB)->Throttle = 1.0f;
+            (*BB)->Throttle = 0.8f;
+
+            std::cout << "[AltitudeSafetyCheck] currentAltitude: " << currentAltitude << "m!" << std::endl;
+            std::cout << "[AltitudeSafetyCheck] currentVP.Z: " << currentVP.Z << "m!" << std::endl;
+            std::cout << "[AltitudeSafetyCheck] (*BB)->Throttle: " << (*BB)->Throttle << "!" << std::endl;
             return NodeStatus::SUCCESS;
         }
         return NodeStatus::SUCCESS;

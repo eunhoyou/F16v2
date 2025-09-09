@@ -55,7 +55,7 @@ UCPPBehaviorTree::~UCPPBehaviorTree()
 void UCPPBehaviorTree::init()
 {
 	last_log_time = 0.0;
-    log_interval = 1;
+    log_interval = 0.2;
 	/*
 	노드 입력 : 구현해둔 노드들을 Factory 객체에 입력해주는 과정
 	*/
@@ -201,7 +201,6 @@ void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
 {
     BB->RunningTime += BB->DeltaSecond;
     
-    // 1초마다 로그 기록
     bool should_log = (BB->RunningTime - last_log_time) >= log_interval;
 
     NodeStatus result = tree.tickRoot();
@@ -209,7 +208,6 @@ void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
     VP = Vector3(BB->VP_Cartesian.X, BB->VP_Cartesian.Y, BB->VP_Cartesian.Z);
     Throttle = BB->Throttle;
     
-    // 로그는 1초 주기 기록
     if (should_log) {
         last_log_time = BB->RunningTime;
         
@@ -263,9 +261,6 @@ void UCPPBehaviorTree::RunCPPBT(Vector3& VP, float& Throttle, bool& AimmingMode)
             
             log_file.close();
         }
-        
-        // 콘솔 출력도 0.5초 주기로
-        std::cout << "[ID:" << ID << "] Running time: " << BB->RunningTime << std::endl;
     }
 }
 

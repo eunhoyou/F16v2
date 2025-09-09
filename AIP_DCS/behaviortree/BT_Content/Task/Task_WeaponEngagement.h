@@ -15,14 +15,17 @@ namespace Action
     class Task_WeaponEngagement : public SyncActionNode
     {
     private:
-        // WEZ 상수들 (시뮬레이터 규격)
         static constexpr float WEZ_MIN_RANGE = 152.4f;  // 500 피트 = 152.4 미터
         static constexpr float WEZ_MAX_RANGE = 914.4f;  // 3000 피트 = 914.4 미터
         static constexpr float WEZ_MAX_ANGLE = 2.0f;    // ±2도
 
-        Vector3 CalculateAiming(CPPBlackBoard* BB);
         float CalculateWEZThrottle(CPPBlackBoard* BB);
         bool IsInWEZ(CPPBlackBoard* BB);
+        bool IsApproachingWEZ(CPPBlackBoard* BB);
+        Vector3 CalculateHighPrecisionLOS(CPPBlackBoard* BB);
+        Vector3 CalculateAnglePriorityCorrection(CPPBlackBoard* BB);
+        Vector3 CalculateDirectApproach(CPPBlackBoard* BB);
+        bool IsNearWEZ(CPPBlackBoard* BB);
 
     public:
         Task_WeaponEngagement(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)

@@ -13,7 +13,6 @@ enum BFM_Mode
 	DETECTING,
 	SCISSORS,
 	NONE
-
 };
 
 enum ACM_Mode

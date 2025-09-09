@@ -12,9 +12,9 @@ namespace Action
     class AltitudeSafetyCheck : public SyncActionNode
     {
     private:
-        static constexpr float SAFE_ALTITUDE = 800.0;
-        static constexpr float CRITICAL_ALTITUDE = 600.0;
-        static constexpr float EMERGENCY_ALTITUDE = 400.0;
+        static constexpr float SAFE_ALTITUDE = 2000.0;
+        static constexpr float CRITICAL_ALTITUDE = 1500.0;
+        static constexpr float EMERGENCY_ALTITUDE = 1000.0;
 
     public:
         AltitudeSafetyCheck(const std::string& name, const NodeConfiguration& config) : SyncActionNode(name, config)

@@ -15,12 +15,10 @@ namespace Action
     class Task_DefensiveBFM : public SyncActionNode
     {
     private:
-        // WEZ 상수들 (시뮬레이터 기준)
         const float WEZ_MIN_RANGE = 152.4f;   // 500ft
         const float WEZ_MAX_RANGE = 914.4f;   // 3000ft  
         const float WEZ_MAX_ANGLE = 2.0f;     // 2도
 
-        // 교본 기반 위협 수준 분류
         enum ThreatLevel
         {
             IMMEDIATE_WEZ_THREAT,   // WEZ 내 즉시 위험
@@ -30,13 +28,10 @@ namespace Action
         };
 
         // 위협 평가
-        ThreatLevel AssessThreatLevel(CPPBlackBoard* BB);
 
         // 교본 기반 방어 기동 함수들
-        Vector3 CalculateEmergencyWEZEvasion(CPPBlackBoard* BB);     // WEZ 내 긴급 회피
         Vector3 CalculateLiftVectorDefense(CPPBlackBoard* BB);       // 양력벡터 방어
         Vector3 CalculateStandardDefensiveTurn(CPPBlackBoard* BB);   // 표준 방어 선회
-        Vector3 CalculateCounterAttack(CPPBlackBoard* BB);           // 반격 기회 포착
         
         // 위협 판단 함수들
         bool IsInWEZ(float distance, float los);
@@ -44,7 +39,6 @@ namespace Action
         
         // 교본 기반 계산 함수들
         float CalculateCornerSpeed(CPPBlackBoard* BB);
-        float CalculateTurnRadius(float speed, float gLoad);
         float CalculateDefensiveThrottle(CPPBlackBoard* BB);
 
     public:

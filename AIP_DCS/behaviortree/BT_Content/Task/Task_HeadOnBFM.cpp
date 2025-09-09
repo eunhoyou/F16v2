@@ -17,21 +17,39 @@ namespace Action
         float los = (*BB)->Los_Degree;
         float aspectAngle = (*BB)->MyAspectAngle_Degree;
         float angleOff = (*BB)->MyAngleOff_Degree;
+        float mySpeed = (*BB)->MySpeed_MS;
+        float altitude = (*BB)->MyLocation_Cartesian.Z;
 
         std::cout << "[Task_HeadOnBFM] Distance: " << distance 
                   << "m, LOS: " << los << ", AA: " << aspectAngle 
                   << ", AO: " << angleOff << std::endl;
 
-        if (ShouldDisengage(BB.value())) {
-            std::cout << "[Task_HeadOnBFM] Escape window open - disengaging" << std::endl;
-            (*BB)->VP_Cartesian = CalculateDisengagement(BB.value());
-            (*BB)->Throttle = 1.0f;
-        } else {
-            // 단순한 오프셋 접근만 사용
-            (*BB)->VP_Cartesian = CalculateOffsetApproach(BB.value());
-            (*BB)->Throttle = CalculateCornerSpeedThrottle(BB.value());
+        float headOn_Throttle;
+        if (distance > 3000.0f) {
+            headOn_Throttle = 0.8f;
+        }
+        // 1km ~ 3km 중거리에서는 기동성 확보를 위해 코너 속도 유지 로직 적용
+        else if (distance > 1000.0f) {
+            float current_speed = mySpeed;
+            float corner_speed_upper = 250.0f; // 코너 속도 상한 (m/s)
+            float corner_speed_lower = 200.0f; // 코너 속도 하한 (m/s)
+
+            if (current_speed > corner_speed_upper) {
+                headOn_Throttle = 0.4f;
+            } else if (current_speed < corner_speed_lower) {
+                headOn_Throttle = 0.8f;
+            } else {
+                headOn_Throttle = 0.6f;
+            }
+        }
+        // 1km 이내 근접 시에는 오버슛(지나침) 방지를 위해 감속
+        else {
+            headOn_Throttle = 0.7f;
         }
 
+        (*BB)->VP_Cartesian = CalculateOffsetApproach(BB.value());
+        (*BB)->Throttle = headOn_Throttle;
+        std::cout << "[Task_DefensiveBFM] throttle: " << headOn_Throttle << std::endl; 
         return NodeStatus::SUCCESS;
     }
     
@@ -40,9 +58,12 @@ namespace Action
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
+        myRight.normalize();
         float distance = BB->Distance;
-        Vector3 toTarget = (targetLocation - myLocation) / distance;
-        float offsetDistance = distance * 0.2f; // 보수적 오프셋
+        Vector3 toTarget = targetLocation - myLocation;
+        toTarget.normalize();
+
+        float offsetDistance = distance * 0.05f;
 
         float rightDot = toTarget.dot(myRight);
         Vector3 offsetDirection = myRight * ((rightDot > 0) ? -1.0f : 1.0f);
@@ -56,6 +77,7 @@ namespace Action
     {
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 myForward = BB->MyForwardVector;
+        myForward.normalize();
         float mySpeed = BB->MySpeed_MS;
 
         // 교본: "에스케이프 윈도우가 열려있을 때 신속 이탈"
@@ -87,20 +109,19 @@ namespace Action
             return BB->Throttle;
         }
         
-        tempThrottle = std::max(0.0f, std::min(tempThrottle, 1.0f));
         return tempThrottle;
     }
 
-    bool Task_HeadOnBFM::ShouldDisengage(CPPBlackBoard* BB)
-    {
-        float distance = BB->Distance;
-        float mySpeed = BB->MySpeed_MS;
-        float targetSpeed = BB->TargetSpeed_MS;
-        float angleOff = BB->MyAngleOff_Degree;
+    // bool Task_HeadOnBFM::ShouldDisengage(CPPBlackBoard* BB)
+    // {
+    //     float distance = BB->Distance;
+    //     float mySpeed = BB->MySpeed_MS;
+    //     float targetSpeed = BB->TargetSpeed_MS;
+    //     float angleOff = BB->MyAngleOff_Degree;
 
-        bool significantSpeedAdvantage = (mySpeed - targetSpeed > 50.0f);
-        bool favorableGeometry = (angleOff > 150.0f);
+    //     bool significantSpeedAdvantage = (mySpeed - targetSpeed > 50.0f);
+    //     bool favorableGeometry = (angleOff > 150.0f);
 
-        return (significantSpeedAdvantage && favorableGeometry);
-    }
+    //     return (significantSpeedAdvantage && favorableGeometry);
+    // }
 }

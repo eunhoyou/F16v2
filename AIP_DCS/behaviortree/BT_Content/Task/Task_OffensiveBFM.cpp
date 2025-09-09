@@ -18,6 +18,7 @@ namespace Action
         float angleOff = (*BB)->MyAngleOff_Degree;
         float mySpeed = (*BB)->MySpeed_MS;
         float los = (*BB)->Los_Degree;
+        float altitude = (*BB)->MyLocation_Cartesian.Z;
 
         std::cout << "[Task_OffensiveBFM] Distance: " << distance 
                   << "m, AspectAngle: " << aspectAngle 
@@ -25,22 +26,39 @@ namespace Action
                   << ", LOS: " << los << "" << std::endl;
 
         Vector3 calculated_vp;
-        float optimalThrottle;
+        float offensive_Throttle;
         
-        if (abs(angleOff) >= 30.0f) {
+        if (angleOff >= 30.0f) {
             std::cout << "[Task_OffensiveBFM] Entry window - start turn" << std::endl;
             calculated_vp = CalculateEntryWindow(BB.value());
-            optimalThrottle = CalculateOptimalThrottle(BB.value());
+            // offensiveThrottle = CalculateOptimalThrottle(BB.value());
         }
         else {
             std::cout << "[Task_OffensiveBFM] Lag pursuit approach" << std::endl;
             calculated_vp = CalculateLagPursuit(BB.value());
-            optimalThrottle = CalculateOptimalThrottle(BB.value());
+            // offensiveThrottle = CalculateOptimalThrottle(BB.value());
+        }
+
+        float current_speed = mySpeed;
+        float corner_speed_upper = 250.0f; // 코너 속도 상한 (m/s)
+        float corner_speed_lower = 200.0f; // 코너 속도 하한 (m/s)
+
+        // 현재 속도가 너무 빠르면 스로틀을 줄여 코너 속도로 복귀
+        if (current_speed > corner_speed_upper) {
+            offensive_Throttle = 0.4f; // 아이들(Idle)에 가깝게 줄여 적극적으로 감속
+        }
+        // 현재 속도가 너무 느리면 스로틀을 최대로 하여 코너 속도까지 가속
+        else if (current_speed < corner_speed_lower) {
+            offensive_Throttle = 0.8f;
+        }
+        // 코너 속도 범위 내에 있다면 스로틀을 중간 정도로 유지하여 속도 유지
+        else {
+            offensive_Throttle = 0.6f;
         }
 
         (*BB)->VP_Cartesian = calculated_vp;
-        (*BB)->Throttle = optimalThrottle;
-
+        (*BB)->Throttle = offensive_Throttle;
+        std::cout << "[Task_DefensiveBFM] throttle: " << offensive_Throttle << std::endl; 
         return NodeStatus::SUCCESS;
     }
 
@@ -143,7 +161,6 @@ namespace Action
             return BB->Throttle;
         }
         
-        tempThrottle = std::max(0.0f, std::min(tempThrottle, 1.0f));
         return tempThrottle;
     }
 }

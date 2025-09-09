@@ -39,30 +39,30 @@ namespace Action
                 if (energyAdvantage > 0.25f)
                 {
                     calculated_vp = CalculateAggressiveScissors(BB.value());
-                    optimalThrottle = 0.9f;
+                    optimalThrottle = 0.8f;
                 }
                 else if (energyAdvantage < -0.25f)
                 {
                     calculated_vp = CalculateDefensiveScissors(BB.value());
-                    optimalThrottle = 0.6f;
+                    optimalThrottle = 0.4f;
                 }
                 else
                 {
                     calculated_vp = CalculateNeutralScissors(BB.value());
-                    optimalThrottle = 0.75f;
+                    optimalThrottle = 0.6f;
                 }
                 break;
 
             case SCISSORS_ESCAPE_OPPORTUNITY:
                 // 교본: "에너지 우위를 바탕으로 시저스에서 벗어나기"
                 calculated_vp = CalculateScissorsEscape(BB.value());
-                optimalThrottle = 1.0f;
+                optimalThrottle = 0.8f;
                 std::cout << "[Task_Scissors] Phase: ESCAPE_OPPORTUNITY" << std::endl;
                 break;
 
             default:
                 calculated_vp = CalculateNeutralScissors(BB.value());
-                optimalThrottle = 0.8f;
+                optimalThrottle = 0.5f;
                 break;
         }
 
@@ -88,7 +88,7 @@ namespace Action
             return SCISSORS_ESCAPE_OPPORTUNITY;
         }
 
-        if (distance < 1500.0f)
+        if (distance < 3000.0f)
         {
             return SCISSORS_ENERGY_FIGHT;
         }
@@ -101,7 +101,9 @@ namespace Action
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 targetForward = BB->TargetForwardVector;
+        targetForward.normalize();
         Vector3 myRight = BB->MyRightVector;
+        myRight.normalize();
         float targetSpeed = BB->TargetSpeed_MS;
         float mySpeed = BB->MySpeed_MS;
 
@@ -127,7 +129,9 @@ namespace Action
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
+        myRight.normalize();
         Vector3 myForward = BB->MyForwardVector;
+        myForward.normalize();
         float mySpeed = BB->MySpeed_MS;
 
         // 적기로부터 안전한 각도 유지
@@ -158,6 +162,7 @@ namespace Action
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 targetLocation = BB->TargetLocaion_Cartesian;
         Vector3 myRight = BB->MyRightVector;
+        myRight.normalize();
         float distance = BB->Distance;
         float los = BB->Los_Degree;
         float mySpeed = BB->MySpeed_MS;
@@ -187,6 +192,7 @@ namespace Action
     {
         Vector3 myLocation = BB->MyLocation_Cartesian;
         Vector3 myForward = BB->MyForwardVector;
+        myForward.normalize();
         float mySpeed = BB->MySpeed_MS;
         float escapeDistance = mySpeed * 2.0f;
         Vector3 escapePoint = myLocation + myForward * escapeDistance;
@@ -220,14 +226,9 @@ namespace Action
 
     float Task_Scissors::CalculateCornerSpeed(CPPBlackBoard* BB)
     {
-        // 교본: F-16 코너 속도 약 450KCAS ≈ 130m/s
-        float altitude = BB->MyLocation_Cartesian.Z;
-        float baseCornerSpeed = 130.0f;
+        float baseCornerSpeed = 231.5f; // F-16 코너 속도: 약 450KCAS ≈ 231.5m/s
         
-        // 고도에 따른 보정
-        float altitudeBonus = (altitude / 10000.0f) * 20.0f;
-        
-        return baseCornerSpeed + altitudeBonus;
+        return baseCornerSpeed;
     }
 
     float Task_Scissors::CalculateCornerSpeedThrottle(CPPBlackBoard* BB)
@@ -252,7 +253,6 @@ namespace Action
             return BB->Throttle;
         }
         
-        tempThrottle = std::max(0.0f, std::min(tempThrottle, 1.0f));
         return tempThrottle;
     }
 
