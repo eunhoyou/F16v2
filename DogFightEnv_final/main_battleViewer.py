@@ -34,8 +34,8 @@ if __name__ == "__main__":
         # 'ownship': [6000.0, 0.0, -7000.0, 0.0, 0.0, 180.0, 300.0],
     }
     
-    AIP_ownship = CppBT.AIPilot("AIP_DCS.dll")
-    AIP_target = CppBT.AIPilot("AIP_DCS.dll")
+    AIP_ownship = CppBT.AIPilot("KAU_RML_Test.dll")
+    AIP_target = CppBT.AIPilot("KAU_RML.dll")
     command_evt = threading.Event()
     init_evt = threading.Event()
     state_q = queue.Queue(maxsize=10)
